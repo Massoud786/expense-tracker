@@ -8,6 +8,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
+  const [fullName, setFullName] = useState("");
 
   // Check for an existing authenticated session when the page loads.
   // This keeps users logged in after refreshing the browser.
@@ -23,8 +24,21 @@ export default function LoginPage() {
       }
 
       if (data.session) {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", data.session.user.id)
+          .single();
+
+        if (profileError) {
+          setIsSuccess(false);
+          setMessage(profileError.message);
+          return;
+        }
+
+        setFullName(profile.full_name);
         setIsSuccess(true);
-        setMessage(`Already logged in as ${data.session.user.email}`);
+        setMessage(`Welcome, ${profile.full_name}!`);
       }
     }
 
