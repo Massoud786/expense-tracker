@@ -11,8 +11,14 @@
 // - Delete bills using a confirmation modal
 // ------------------------------------------------------------
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import {
+    FormEvent,
+    useCallback,
+    useEffect,
+    useState,
+} from "react";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import Navigation from "@/components/Navigation";
 import { supabase } from "@/lib/supabase";
 
 type Bill = {
@@ -136,13 +142,15 @@ export default function BillsPage() {
             return;
         }
 
-        const { error } = await supabase.from("bills").insert({
-            user_id: user.id,
-            bill_name: trimmedName,
-            amount: numericAmount,
-            due_date: dueDate,
-            paid,
-        });
+        const { error } = await supabase
+            .from("bills")
+            .insert({
+                user_id: user.id,
+                bill_name: trimmedName,
+                amount: numericAmount,
+                due_date: dueDate,
+                paid,
+            });
 
         if (error) {
             setMessage(error.message);
@@ -284,240 +292,296 @@ export default function BillsPage() {
 
     if (isLoading) {
         return (
-            <main>
-                <h1>Bills</h1>
-                <p>Loading bills...</p>
-            </main>
+            <>
+                <Navigation />
+
+                <main>
+                    <h1>Bills</h1>
+                    <p>Loading bills...</p>
+                </main>
+            </>
         );
     }
 
     return (
-        <main>
-            <h1>Bills</h1>
+        <>
+            <Navigation />
 
-            <form onSubmit={handleAddBill}>
-                <div>
-                    <label htmlFor="billName">Bill Name</label>
-                    <input
-                        id="billName"
-                        type="text"
-                        value={billName}
-                        onChange={(event) => {
-                            setBillName(event.target.value);
-                            setMessage("");
-                        }}
-                        required
-                    />
-                </div>
+            <main>
+                <h1>Bills</h1>
 
-                <div>
-                    <label htmlFor="amount">Amount</label>
-                    <input
-                        id="amount"
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        value={amount}
-                        onChange={(event) => {
-                            setAmount(event.target.value);
-                            setMessage("");
-                        }}
-                        required
-                    />
-                </div>
+                <form onSubmit={handleAddBill}>
+                    <div>
+                        <label htmlFor="billName">
+                            Bill Name
+                        </label>
 
-                <div>
-                    <label htmlFor="dueDate">Due Date</label>
-                    <input
-                        id="dueDate"
-                        type="date"
-                        value={dueDate}
-                        onChange={(event) => {
-                            setDueDate(event.target.value);
-                            setMessage("");
-                        }}
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label htmlFor="paid">
                         <input
-                            id="paid"
-                            type="checkbox"
-                            checked={paid}
-                            onChange={(event) =>
-                                setPaid(event.target.checked)
-                            }
+                            id="billName"
+                            type="text"
+                            value={billName}
+                            onChange={(event) => {
+                                setBillName(event.target.value);
+                                setMessage("");
+                            }}
+                            required
                         />
-                        Bill is already paid
-                    </label>
-                </div>
+                    </div>
 
-                <button type="submit">Add Bill</button>
-            </form>
+                    <div>
+                        <label htmlFor="amount">
+                            Amount
+                        </label>
 
-            {message && (
-                <p style={{ color: isSuccess ? "green" : "red" }}>
-                    {message}
-                </p>
-            )}
+                        <input
+                            id="amount"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value={amount}
+                            onChange={(event) => {
+                                setAmount(event.target.value);
+                                setMessage("");
+                            }}
+                            required
+                        />
+                    </div>
 
-            <h2>Your Bills</h2>
+                    <div>
+                        <label htmlFor="dueDate">
+                            Due Date
+                        </label>
 
-            {bills.length === 0 ? (
-                <p>No bills yet.</p>
-            ) : (
-                <ul>
-                    {bills.map((bill) => (
-                        <li key={bill.id}>
-                            {editingBillId === bill.id ? (
-                                <>
-                                    <input
-                                        type="text"
-                                        value={editedBillName}
-                                        onChange={(event) =>
-                                            setEditedBillName(
-                                                event.target.value
-                                            )
-                                        }
-                                    />
+                        <input
+                            id="dueDate"
+                            type="date"
+                            value={dueDate}
+                            onChange={(event) => {
+                                setDueDate(event.target.value);
+                                setMessage("");
+                            }}
+                            required
+                        />
+                    </div>
 
-                                    <input
-                                        type="number"
-                                        min="0.01"
-                                        step="0.01"
-                                        value={editedAmount}
-                                        onChange={(event) =>
-                                            setEditedAmount(
-                                                event.target.value
-                                            )
-                                        }
-                                        style={{ marginLeft: "10px" }}
-                                    />
+                    <div>
+                        <label htmlFor="paid">
+                            <input
+                                id="paid"
+                                type="checkbox"
+                                checked={paid}
+                                onChange={(event) =>
+                                    setPaid(event.target.checked)
+                                }
+                            />
+                            Bill is already paid
+                        </label>
+                    </div>
 
-                                    <input
-                                        type="date"
-                                        value={editedDueDate}
-                                        onChange={(event) =>
-                                            setEditedDueDate(
-                                                event.target.value
-                                            )
-                                        }
-                                        style={{ marginLeft: "10px" }}
-                                    />
+                    <button type="submit">
+                        Add Bill
+                    </button>
+                </form>
 
-                                    <label
-                                        style={{ marginLeft: "10px" }}
-                                    >
+                {message && (
+                    <p
+                        style={{
+                            color: isSuccess ? "green" : "red",
+                        }}
+                    >
+                        {message}
+                    </p>
+                )}
+
+                <h2>Your Bills</h2>
+
+                {bills.length === 0 ? (
+                    <p>No bills yet.</p>
+                ) : (
+                    <ul>
+                        {bills.map((bill) => (
+                            <li key={bill.id}>
+                                {editingBillId === bill.id ? (
+                                    <>
                                         <input
-                                            type="checkbox"
-                                            checked={editedPaid}
+                                            type="text"
+                                            value={editedBillName}
                                             onChange={(event) =>
-                                                setEditedPaid(
-                                                    event.target.checked
+                                                setEditedBillName(
+                                                    event.target.value
                                                 )
                                             }
                                         />
-                                        Paid
-                                    </label>
 
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            handleUpdateBill(bill.id)
-                                        }
-                                        style={{ marginLeft: "10px" }}
-                                    >
-                                        Save
-                                    </button>
+                                        <input
+                                            type="number"
+                                            min="0.01"
+                                            step="0.01"
+                                            value={editedAmount}
+                                            onChange={(event) =>
+                                                setEditedAmount(
+                                                    event.target.value
+                                                )
+                                            }
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        />
 
-                                    <button
-                                        type="button"
-                                        onClick={cancelEditing}
-                                        style={{ marginLeft: "10px" }}
-                                    >
-                                        Cancel
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    {bill.bill_name}
-                                    {" — "}
-                                    {formatCurrency(bill.amount)}
-                                    {" — Due "}
-                                    {formatDate(bill.due_date)}
-                                    {" — "}
-                                    <strong
-                                        style={{
-                                            color: bill.paid
-                                                ? "green"
-                                                : "red",
-                                        }}
-                                    >
-                                        {bill.paid
-                                            ? "Paid"
-                                            : "Unpaid"}
-                                    </strong>
+                                        <input
+                                            type="date"
+                                            value={editedDueDate}
+                                            onChange={(event) =>
+                                                setEditedDueDate(
+                                                    event.target.value
+                                                )
+                                            }
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        />
 
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            handleTogglePaid(bill)
-                                        }
-                                        style={{ marginLeft: "10px" }}
-                                    >
-                                        Mark as{" "}
-                                        {bill.paid ? "Unpaid" : "Paid"}
-                                    </button>
+                                        <label
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={editedPaid}
+                                                onChange={(event) =>
+                                                    setEditedPaid(
+                                                        event.target.checked
+                                                    )
+                                                }
+                                            />
+                                            Paid
+                                        </label>
 
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            startEditingBill(bill)
-                                        }
-                                        style={{ marginLeft: "10px" }}
-                                    >
-                                        Edit
-                                    </button>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleUpdateBill(
+                                                    bill.id
+                                                )
+                                            }
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        >
+                                            Save
+                                        </button>
 
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setBillToDelete(bill)
-                                        }
-                                        style={{ marginLeft: "10px" }}
-                                    >
-                                        Delete
-                                    </button>
-                                </>
-                            )}
-                        </li>
-                    ))}
-                </ul>
-            )}
+                                        <button
+                                            type="button"
+                                            onClick={cancelEditing}
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        >
+                                            Cancel
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        {bill.bill_name}
+                                        {" — "}
+                                        {formatCurrency(
+                                            bill.amount
+                                        )}
+                                        {" — Due "}
+                                        {formatDate(
+                                            bill.due_date
+                                        )}
+                                        {" — "}
 
-            <ConfirmationModal
-                isOpen={billToDelete !== null}
-                title="Delete Bill"
-                message={
-                    billToDelete
-                        ? `Are you sure you want to delete "${billToDelete.bill_name}"? This action cannot be undone.`
-                        : ""
-                }
-                confirmText={
-                    isDeleting ? "Deleting..." : "Delete"
-                }
-                cancelText="Cancel"
-                onConfirm={() => {
-                    void handleDeleteBill();
-                }}
-                onCancel={() => {
-                    if (!isDeleting) {
-                        setBillToDelete(null);
+                                        <strong
+                                            style={{
+                                                color: bill.paid
+                                                    ? "green"
+                                                    : "red",
+                                            }}
+                                        >
+                                            {bill.paid
+                                                ? "Paid"
+                                                : "Unpaid"}
+                                        </strong>
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleTogglePaid(
+                                                    bill
+                                                )
+                                            }
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        >
+                                            Mark as{" "}
+                                            {bill.paid
+                                                ? "Unpaid"
+                                                : "Paid"}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                startEditingBill(
+                                                    bill
+                                                )
+                                            }
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        >
+                                            Edit
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setBillToDelete(
+                                                    bill
+                                                )
+                                            }
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        >
+                                            Delete
+                                        </button>
+                                    </>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+
+                <ConfirmationModal
+                    isOpen={billToDelete !== null}
+                    title="Delete Bill"
+                    message={
+                        billToDelete
+                            ? `Are you sure you want to delete "${billToDelete.bill_name}"? This action cannot be undone.`
+                            : ""
                     }
-                }}
-            />
-        </main>
+                    confirmText={
+                        isDeleting
+                            ? "Deleting..."
+                            : "Delete"
+                    }
+                    cancelText="Cancel"
+                    onConfirm={() => {
+                        void handleDeleteBill();
+                    }}
+                    onCancel={() => {
+                        if (!isDeleting) {
+                            setBillToDelete(null);
+                        }
+                    }}
+                />
+            </main>
+        </>
     );
 }
