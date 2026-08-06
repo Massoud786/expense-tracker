@@ -1,5 +1,14 @@
 "use client";
 
+// ------------------------------------------------------------
+// Sign Up Page
+//
+// Allows new users to:
+// - Create a new account
+// - Register with email and password
+// - Store the user's full name in Supabase metadata
+// ------------------------------------------------------------
+
 import { FormEvent, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -10,18 +19,12 @@ export default function SignUpPage() {
   const [message, setMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
-
-  // Handle user registration by sending the user's information
-  // to Supabase Authentication.
+  // Creates a new user account in Supabase Authentication.
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-
-    // Prevent the browser from refreshing the page
-    // when the registration form is submitted. 
     event.preventDefault();
     setMessage("");
     setIsSuccess(false);
-
-    // Create a new user account in Supabase Authentication.
+    
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -38,8 +41,6 @@ export default function SignUpPage() {
       return;
     }
 
-    // Display a confirmation message after the account
-    // has been created successfully.
     setIsSuccess(true);
     setMessage(
       "Account created successfully. Check your email to verify your account."
@@ -96,9 +97,6 @@ export default function SignUpPage() {
 
         <button type="submit">Create Account</button>
       </form>
-
-      {/* Display either a success or error message depending 
-          on the authentication result. */}
       {message && (
         <p style={{ color: isSuccess ? "green" : "red" }}>
           {message}

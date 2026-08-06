@@ -1,5 +1,14 @@
 "use client";
 
+// ------------------------------------------------------------
+// Login Page
+//
+// Allows users to:
+// - Log in with email and password
+// - Restore an existing authenticated session
+// - Log out of the application
+// ---------------------
+
 import { FormEvent, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 

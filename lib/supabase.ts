@@ -1,5 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 
+// ------------------------------------------------------------
+// Supabase Client
+//
+// Creates and exports a reusable Supabase client for
+// communicating with the project's Supabase backend.
+// ------------------------------------------------------------
+
 // Read the Supabase project URL and public API key
 // from the application's environment variables.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
