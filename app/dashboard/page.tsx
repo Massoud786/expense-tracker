@@ -9,6 +9,7 @@
 // ------------------------------------------------------------
 
 import { useCallback, useEffect, useState } from "react";
+import Navigation from "@/components/Navigation";
 import { supabase } from "@/lib/supabase";
 import styles from "./dashboard.module.css";
 
@@ -141,128 +142,152 @@ export default function DashboardPage() {
 
     if (isLoading) {
         return (
-            <main>
-                <h1>Expense Dashboard</h1>
-                <p>Loading dashboard...</p>
-            </main>
+            <>
+                <Navigation />
+
+                <main className={styles.dashboard}>
+                    <div className={styles.container}>
+                        <header className={styles.header}>
+                            <h1>Expense Dashboard</h1>
+                            <p>Loading dashboard...</p>
+                        </header>
+                    </div>
+                </main>
+            </>
         );
     }
 
     return (
-        <main className={styles.dashboard}>
-            <div className={styles.container}>
-                <header className={styles.header}>
-                    <h1>Expense Dashboard</h1>
-                    <p>
-                        Review your balance, income, expenses, and recent
-                        activity.
-                    </p>
-                </header>
+        <>
+            <Navigation />
 
-                {message && (
-                    <p className={styles.errorMessage}>
-                        {message}
-                    </p>
-                )}
-
-                <section className={styles.summaryGrid}>
-                    <article className={styles.summaryCard}>
-                        <h2>Current Balance</h2>
-                        <p
-                            className={
-                                currentBalance < 0
-                                    ? styles.negativeAmount
-                                    : styles.positiveAmount
-                            }
-                        >
-                            {formatCurrency(currentBalance)}
+            <main className={styles.dashboard}>
+                <div className={styles.container}>
+                    <header className={styles.header}>
+                        <h1>Expense Dashboard</h1>
+                        <p>
+                            Review your balance, income, expenses, and recent
+                            activity.
                         </p>
-                    </article>
+                    </header>
 
-                    <article className={styles.summaryCard}>
-                        <h2>Total Income</h2>
-                        <p className={styles.positiveAmount}>
-                            {formatCurrency(totalIncome)}
+                    {message && (
+                        <p className={styles.errorMessage}>
+                            {message}
                         </p>
-                    </article>
-
-                    <article className={styles.summaryCard}>
-                        <h2>Total Expenses</h2>
-                        <p className={styles.negativeAmount}>
-                            {formatCurrency(totalExpenses)}
-                        </p>
-                    </article>
-                </section>
-
-                <section className={styles.transactionsSection}>
-                    <div className={styles.sectionHeader}>
-                        <h2>Recent Transactions</h2>
-                        <p>Showing up to five recent transactions.</p>
-                    </div>
-
-                    {recentTransactions.length === 0 ? (
-                        <p className={styles.emptyMessage}>
-                            No transactions yet.
-                        </p>
-                    ) : (
-                        <div className={styles.tableWrapper}>
-                            <table className={styles.transactionsTable}>
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Category</th>
-                                        <th>Payment Method</th>
-                                        <th>Description</th>
-                                        <th>Amount</th>
-                                    </tr>
-                                </thead>
-
-                                <tbody>
-                                    {recentTransactions.map(
-                                        (transaction) => (
-                                            <tr key={transaction.id}>
-                                                <td>
-                                                    {formatDate(
-                                                        transaction.transaction_date
-                                                    )}
-                                                </td>
-
-                                                <td>
-                                                    {transaction.category?.name ??
-                                                        "Unknown Category"}
-                                                </td>
-
-                                                <td>
-                                                    {transaction.payment_method
-                                                        ?.name ??
-                                                        "Unknown Payment Method"}
-                                                </td>
-
-                                                <td>
-                                                    {transaction.description ??
-                                                        "No description"}
-                                                </td>
-
-                                                <td
-                                                    className={
-                                                        transaction.amount < 0
-                                                            ? styles.negativeAmount
-                                                            : styles.positiveAmount
-                                                    }
-                                                >
-                                                    {formatCurrency(
-                                                        transaction.amount
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        )
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
                     )}
-                </section>
-            </div>
-        </main>
+
+                    <section className={styles.summaryGrid}>
+                        <article className={styles.summaryCard}>
+                            <h2>Current Balance</h2>
+
+                            <p
+                                className={
+                                    currentBalance < 0
+                                        ? styles.negativeAmount
+                                        : styles.positiveAmount
+                                }
+                            >
+                                {formatCurrency(currentBalance)}
+                            </p>
+                        </article>
+
+                        <article className={styles.summaryCard}>
+                            <h2>Total Income</h2>
+
+                            <p className={styles.positiveAmount}>
+                                {formatCurrency(totalIncome)}
+                            </p>
+                        </article>
+
+                        <article className={styles.summaryCard}>
+                            <h2>Total Expenses</h2>
+
+                            <p className={styles.negativeAmount}>
+                                {formatCurrency(totalExpenses)}
+                            </p>
+                        </article>
+                    </section>
+
+                    <section className={styles.transactionsSection}>
+                        <div className={styles.sectionHeader}>
+                            <h2>Recent Transactions</h2>
+                            <p>
+                                Showing up to five recent transactions.
+                            </p>
+                        </div>
+
+                        {recentTransactions.length === 0 ? (
+                            <p className={styles.emptyMessage}>
+                                No transactions yet.
+                            </p>
+                        ) : (
+                            <div className={styles.tableWrapper}>
+                                <table
+                                    className={styles.transactionsTable}
+                                >
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Category</th>
+                                            <th>Payment Method</th>
+                                            <th>Description</th>
+                                            <th>Amount</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        {recentTransactions.map(
+                                            (transaction) => (
+                                                <tr key={transaction.id}>
+                                                    <td>
+                                                        {formatDate(
+                                                            transaction
+                                                                .transaction_date
+                                                        )}
+                                                    </td>
+
+                                                    <td>
+                                                        {transaction.category
+                                                            ?.name ??
+                                                            "Unknown Category"}
+                                                    </td>
+
+                                                    <td>
+                                                        {transaction
+                                                            .payment_method
+                                                            ?.name ??
+                                                            "Unknown Payment Method"}
+                                                    </td>
+
+                                                    <td>
+                                                        {transaction
+                                                            .description ??
+                                                            "No description"}
+                                                    </td>
+
+                                                    <td
+                                                        className={
+                                                            transaction.amount <
+                                                                0
+                                                                ? styles.negativeAmount
+                                                                : styles.positiveAmount
+                                                        }
+                                                    >
+                                                        {formatCurrency(
+                                                            transaction.amount
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            )
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </section>
+                </div>
+            </main>
+        </>
     );
 }

@@ -13,15 +13,15 @@
 // and displayed as dropdown menus.
 // ------------------------------------------------------------
 
-
 import {
     FormEvent,
     useCallback,
     useEffect,
     useState,
 } from "react";
-import { supabase } from "@/lib/supabase";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import Navigation from "@/components/Navigation";
+import { supabase } from "@/lib/supabase";
 
 type TransactionType = "Expense" | "Income";
 
@@ -71,7 +71,7 @@ function formatDate(date: string) {
 export default function TransactionsPage() {
     const [transactionType, setTransactionType] =
         useState<TransactionType>("Expense");
-    // Form input values
+
     const [amount, setAmount] = useState("");
     const [categoryId, setCategoryId] = useState("");
     const [paymentMethodId, setPaymentMethodId] = useState("");
@@ -83,7 +83,6 @@ export default function TransactionsPage() {
     const [paymentMethods, setPaymentMethods] =
         useState<PaymentMethod[]>([]);
 
-    // List of transactions displayed on the page
     const [transactions, setTransactions] =
         useState<Transaction[]>([]);
 
@@ -106,7 +105,6 @@ export default function TransactionsPage() {
     // Controls the delete confirmation modal.
     const [showDeleteModal, setShowDeleteModal] =
         useState(false);
-
     const [transactionToDelete, setTransactionToDelete] =
         useState<Transaction | null>(null);
 
@@ -168,15 +166,15 @@ export default function TransactionsPage() {
         const { data, error } = await supabase
             .from("transactions")
             .select(`
-        id,
-        amount,
-        description,
-        transaction_date,
-        category_id,
-        payment_method_id,
-        category:categories(name),
-        payment_method:payment_methods(name)
-      `)
+                id,
+                amount,
+                description,
+                transaction_date,
+                category_id,
+                payment_method_id,
+                category:categories(name),
+                payment_method:payment_methods(name)
+            `)
             .order("transaction_date", { ascending: false })
             .order("id", { ascending: false });
 
@@ -186,7 +184,9 @@ export default function TransactionsPage() {
             return;
         }
 
-        setTransactions((data ?? []) as unknown as Transaction[]);
+        setTransactions(
+            (data ?? []) as unknown as Transaction[]
+        );
     }, []);
 
     // Load everything needed by the page when it first opens.
@@ -245,6 +245,7 @@ export default function TransactionsPage() {
             setMessage("You must be logged in to add a transaction.");
             return;
         }
+
         // Store expenses as negative values and income as positive values.
         const signedAmount =
             transactionType === "Expense"
@@ -253,14 +254,16 @@ export default function TransactionsPage() {
 
         const trimmedDescription = description.trim();
 
-        const { error } = await supabase.from("transactions").insert({
-            user_id: user.id,
-            category_id: Number(categoryId),
-            payment_method_id: Number(paymentMethodId),
-            amount: signedAmount,
-            description: trimmedDescription || null,
-            transaction_date: transactionDate,
-        });
+        const { error } = await supabase
+            .from("transactions")
+            .insert({
+                user_id: user.id,
+                category_id: Number(categoryId),
+                payment_method_id: Number(paymentMethodId),
+                amount: signedAmount,
+                description: trimmedDescription || null,
+                transaction_date: transactionDate,
+            });
 
         if (error) {
             setMessage(error.message);
@@ -278,8 +281,9 @@ export default function TransactionsPage() {
     }
 
     // Deletes the selected transaction after confirmation.
-    async function handleDeleteTransaction(transactionId: number) {
-
+    async function handleDeleteTransaction(
+        transactionId: number
+    ) {
         setMessage("");
         setIsSuccess(false);
 
@@ -306,7 +310,9 @@ export default function TransactionsPage() {
     }
 
     // Updates an existing transaction.
-    async function handleUpdateTransaction(transactionId: number) {
+    async function handleUpdateTransaction(
+        transactionId: number
+    ) {
         setMessage("");
         setIsSuccess(false);
 
@@ -336,6 +342,7 @@ export default function TransactionsPage() {
             editedTransactionType === "Expense"
                 ? -Math.abs(numericAmount)
                 : Math.abs(numericAmount);
+
         // Remove extra spaces entered by the user.
         const trimmedDescription = editedDescription.trim();
 
@@ -363,7 +370,9 @@ export default function TransactionsPage() {
     }
 
     // Places the selected transaction into edit mode.
-    function startEditingTransaction(transaction: Transaction) {
+    function startEditingTransaction(
+        transaction: Transaction
+    ) {
         setEditingTransactionId(transaction.id);
         setEditedTransactionType(
             transaction.amount < 0 ? "Expense" : "Income"
@@ -395,328 +404,432 @@ export default function TransactionsPage() {
         categories.length > 0 && paymentMethods.length > 0;
 
     return (
-        <main>
-            <h1>Transactions</h1>
+        <>
+            <Navigation />
 
-            <form onSubmit={handleAddTransaction}>
-                <div>
-                    <label htmlFor="transactionType">
-                        Transaction Type
-                    </label>
+            <main>
+                <h1>Transactions</h1>
 
-                    <select
-                        id="transactionType"
-                        value={transactionType}
-                        onChange={(event) => {
-                            setTransactionType(
-                                event.target.value as TransactionType
-                            );
-                            setMessage("");
-                        }}
-                    >
-                        <option value="Expense">Expense</option>
-                        <option value="Income">Income</option>
-                    </select>
-                </div>
+                <form onSubmit={handleAddTransaction}>
+                    <div>
+                        <label htmlFor="transactionType">
+                            Transaction Type
+                        </label>
 
-                <div>
-                    <label htmlFor="amount">Amount</label>
-
-                    <input
-                        id="amount"
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        value={amount}
-                        onChange={(event) => {
-                            setAmount(event.target.value);
-                            setMessage("");
-                        }}
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label htmlFor="category">Category</label>
-
-                    <select
-                        id="category"
-                        value={categoryId}
-                        onChange={(event) => {
-                            setCategoryId(event.target.value);
-                            setMessage("");
-                        }}
-                        required
-                    >
-                        <option value="">Select a category</option>
-
-                        {categories.map((category) => (
-                            <option
-                                key={category.id}
-                                value={category.id}
-                            >
-                                {category.name}
+                        <select
+                            id="transactionType"
+                            value={transactionType}
+                            onChange={(event) => {
+                                setTransactionType(
+                                    event.target
+                                        .value as TransactionType
+                                );
+                                setMessage("");
+                            }}
+                        >
+                            <option value="Expense">
+                                Expense
                             </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div>
-                    <label htmlFor="paymentMethod">
-                        Payment Method
-                    </label>
-
-                    <select
-                        id="paymentMethod"
-                        value={paymentMethodId}
-                        onChange={(event) => {
-                            setPaymentMethodId(event.target.value);
-                            setMessage("");
-                        }}
-                        required
-                    >
-                        <option value="">Select a payment method</option>
-
-                        {paymentMethods.map((paymentMethod) => (
-                            <option
-                                key={paymentMethod.id}
-                                value={paymentMethod.id}
-                            >
-                                {paymentMethod.name}
+                            <option value="Income">
+                                Income
                             </option>
-                        ))}
-                    </select>
-                </div>
+                        </select>
+                    </div>
 
-                <div>
-                    <label htmlFor="description">
-                        Description (Optional)
-                    </label>
+                    <div>
+                        <label htmlFor="amount">Amount</label>
 
-                    <input
-                        id="description"
-                        type="text"
-                        value={description}
-                        onChange={(event) => {
-                            setDescription(event.target.value);
-                            setMessage("");
-                        }}
-                    />
-                </div>
+                        <input
+                            id="amount"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value={amount}
+                            onChange={(event) => {
+                                setAmount(event.target.value);
+                                setMessage("");
+                            }}
+                            required
+                        />
+                    </div>
 
-                <div>
-                    <label htmlFor="transactionDate">
-                        Transaction Date
-                    </label>
+                    <div>
+                        <label htmlFor="category">
+                            Category
+                        </label>
 
-                    <input
-                        id="transactionDate"
-                        type="date"
-                        value={transactionDate}
-                        onChange={(event) => {
-                            setTransactionDate(event.target.value);
-                            setMessage("");
-                        }}
-                        required
-                    />
-                </div>
+                        <select
+                            id="category"
+                            value={categoryId}
+                            onChange={(event) => {
+                                setCategoryId(event.target.value);
+                                setMessage("");
+                            }}
+                            required
+                        >
+                            <option value="">
+                                Select a category
+                            </option>
 
-                <button type="submit" disabled={!formIsReady}>
-                    Add Transaction
-                </button>
-            </form>
+                            {categories.map((category) => (
+                                <option
+                                    key={category.id}
+                                    value={category.id}
+                                >
+                                    {category.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
-            {!formIsReady && (
-                <p>
-                    Create at least one category and one payment method
-                    before adding a transaction.
-                </p>
-            )}
+                    <div>
+                        <label htmlFor="paymentMethod">
+                            Payment Method
+                        </label>
 
-            {message && (
-                <p style={{ color: isSuccess ? "green" : "red" }}>
-                    {message}
-                </p>
-            )}
+                        <select
+                            id="paymentMethod"
+                            value={paymentMethodId}
+                            onChange={(event) => {
+                                setPaymentMethodId(
+                                    event.target.value
+                                );
+                                setMessage("");
+                            }}
+                            required
+                        >
+                            <option value="">
+                                Select a payment method
+                            </option>
 
-            <h2>Your Transactions</h2>
-
-            {transactions.length === 0 ? (
-                <p>No transactions yet.</p>
-            ) : (
-                <ul>
-                    {transactions.map((transaction) => (
-                        <li key={transaction.id}>
-                            {editingTransactionId === transaction.id ? (
-                                <>
-                                    <select
-                                        value={editedTransactionType}
-                                        onChange={(event) =>
-                                            setEditedTransactionType(
-                                                event.target.value as TransactionType
-                                            )
-                                        }
+                            {paymentMethods.map(
+                                (paymentMethod) => (
+                                    <option
+                                        key={paymentMethod.id}
+                                        value={paymentMethod.id}
                                     >
-                                        <option value="Expense">Expense</option>
-                                        <option value="Income">Income</option>
-                                    </select>
-
-                                    <input
-                                        type="number"
-                                        min="0.01"
-                                        step="0.01"
-                                        value={editedAmount}
-                                        onChange={(event) =>
-                                            setEditedAmount(event.target.value)
-                                        }
-                                        style={{ marginLeft: "10px" }}
-                                    />
-
-                                    <select
-                                        value={editedCategoryId}
-                                        onChange={(event) =>
-                                            setEditedCategoryId(event.target.value)
-                                        }
-                                        style={{ marginLeft: "10px" }}
-                                    >
-                                        {categories.map((category) => (
-                                            <option
-                                                key={category.id}
-                                                value={category.id}
-                                            >
-                                                {category.name}
-                                            </option>
-                                        ))}
-                                    </select>
-
-                                    <select
-                                        value={editedPaymentMethodId}
-                                        onChange={(event) =>
-                                            setEditedPaymentMethodId(
-                                                event.target.value
-                                            )
-                                        }
-                                        style={{ marginLeft: "10px" }}
-                                    >
-                                        {paymentMethods.map((paymentMethod) => (
-                                            <option
-                                                key={paymentMethod.id}
-                                                value={paymentMethod.id}
-                                            >
-                                                {paymentMethod.name}
-                                            </option>
-                                        ))}
-                                    </select>
-
-                                    <input
-                                        type="text"
-                                        value={editedDescription}
-                                        onChange={(event) =>
-                                            setEditedDescription(event.target.value)
-                                        }
-                                        placeholder="Description"
-                                        style={{ marginLeft: "10px" }}
-                                    />
-
-                                    <input
-                                        type="date"
-                                        value={editedTransactionDate}
-                                        onChange={(event) =>
-                                            setEditedTransactionDate(
-                                                event.target.value
-                                            )
-                                        }
-                                        style={{ marginLeft: "10px" }}
-                                    />
-
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            handleUpdateTransaction(transaction.id)
-                                        }
-                                        style={{ marginLeft: "10px" }}
-                                    >
-                                        Save
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={cancelEditing}
-                                        style={{ marginLeft: "10px" }}
-                                    >
-                                        Cancel
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    {formatDate(transaction.transaction_date)}
-                                    {" — "}
-                                    {transaction.category?.name ??
-                                        "Unknown Category"}
-                                    {" — "}
-                                    {transaction.payment_method?.name ??
-                                        "Unknown Payment Method"}
-                                    {" — "}
-                                    <span
-                                        style={{
-                                            color:
-                                                transaction.amount < 0
-                                                    ? "red"
-                                                    : "green",
-                                        }}
-                                    >
-                                        {formatCurrency(transaction.amount)}
-                                    </span>
-
-                                    {transaction.description && (
-                                        <> — {transaction.description}</>
-                                    )}
-
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            startEditingTransaction(transaction)
-                                        }
-                                        style={{ marginLeft: "10px" }}
-                                    >
-                                        Edit
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setTransactionToDelete(transaction);
-                                            setShowDeleteModal(true);
-                                        }}
-                                        style={{ marginLeft: "10px" }}
-                                    >
-                                        Delete
-                                    </button>
-                                </>
+                                        {paymentMethod.name}
+                                    </option>
+                                )
                             )}
-                        </li>
-                    ))}
-                </ul>
-            )}
+                        </select>
+                    </div>
 
-            {/* Confirmation dialog displayed before deleting a transaction. */}
-            <ConfirmationModal
-                isOpen={showDeleteModal}
-                title="Delete Transaction"
-                message={`Are you sure you want to delete this transaction?
-                This action cannot be undone.`}
-                confirmText="Delete"
-                cancelText="Cancel"
-                onConfirm={() => {
-                    if (transactionToDelete) {
-                        handleDeleteTransaction(transactionToDelete.id);
-                    }
-                }}
-                onCancel={() => {
-                    setShowDeleteModal(false);
-                    setTransactionToDelete(null);
-                }}
-            />
-        </main>
+                    <div>
+                        <label htmlFor="description">
+                            Description (Optional)
+                        </label>
+
+                        <input
+                            id="description"
+                            type="text"
+                            value={description}
+                            onChange={(event) => {
+                                setDescription(event.target.value);
+                                setMessage("");
+                            }}
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="transactionDate">
+                            Transaction Date
+                        </label>
+
+                        <input
+                            id="transactionDate"
+                            type="date"
+                            value={transactionDate}
+                            onChange={(event) => {
+                                setTransactionDate(
+                                    event.target.value
+                                );
+                                setMessage("");
+                            }}
+                            required
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={!formIsReady}
+                    >
+                        Add Transaction
+                    </button>
+                </form>
+
+                {!formIsReady && (
+                    <p>
+                        Create at least one category and one
+                        payment method before adding a transaction.
+                    </p>
+                )}
+
+                {message && (
+                    <p
+                        style={{
+                            color: isSuccess ? "green" : "red",
+                        }}
+                    >
+                        {message}
+                    </p>
+                )}
+
+                <h2>Your Transactions</h2>
+
+                {transactions.length === 0 ? (
+                    <p>No transactions yet.</p>
+                ) : (
+                    <ul>
+                        {transactions.map((transaction) => (
+                            <li key={transaction.id}>
+                                {editingTransactionId ===
+                                    transaction.id ? (
+                                    <>
+                                        <select
+                                            value={
+                                                editedTransactionType
+                                            }
+                                            onChange={(event) =>
+                                                setEditedTransactionType(
+                                                    event.target
+                                                        .value as TransactionType
+                                                )
+                                            }
+                                        >
+                                            <option value="Expense">
+                                                Expense
+                                            </option>
+                                            <option value="Income">
+                                                Income
+                                            </option>
+                                        </select>
+
+                                        <input
+                                            type="number"
+                                            min="0.01"
+                                            step="0.01"
+                                            value={editedAmount}
+                                            onChange={(event) =>
+                                                setEditedAmount(
+                                                    event.target.value
+                                                )
+                                            }
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        />
+
+                                        <select
+                                            value={editedCategoryId}
+                                            onChange={(event) =>
+                                                setEditedCategoryId(
+                                                    event.target.value
+                                                )
+                                            }
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        >
+                                            {categories.map(
+                                                (category) => (
+                                                    <option
+                                                        key={
+                                                            category.id
+                                                        }
+                                                        value={
+                                                            category.id
+                                                        }
+                                                    >
+                                                        {
+                                                            category.name
+                                                        }
+                                                    </option>
+                                                )
+                                            )}
+                                        </select>
+
+                                        <select
+                                            value={
+                                                editedPaymentMethodId
+                                            }
+                                            onChange={(event) =>
+                                                setEditedPaymentMethodId(
+                                                    event.target.value
+                                                )
+                                            }
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        >
+                                            {paymentMethods.map(
+                                                (paymentMethod) => (
+                                                    <option
+                                                        key={
+                                                            paymentMethod.id
+                                                        }
+                                                        value={
+                                                            paymentMethod.id
+                                                        }
+                                                    >
+                                                        {
+                                                            paymentMethod.name
+                                                        }
+                                                    </option>
+                                                )
+                                            )}
+                                        </select>
+
+                                        <input
+                                            type="text"
+                                            value={editedDescription}
+                                            onChange={(event) =>
+                                                setEditedDescription(
+                                                    event.target.value
+                                                )
+                                            }
+                                            placeholder="Description"
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        />
+
+                                        <input
+                                            type="date"
+                                            value={
+                                                editedTransactionDate
+                                            }
+                                            onChange={(event) =>
+                                                setEditedTransactionDate(
+                                                    event.target.value
+                                                )
+                                            }
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        />
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleUpdateTransaction(
+                                                    transaction.id
+                                                )
+                                            }
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        >
+                                            Save
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={cancelEditing}
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        >
+                                            Cancel
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        {formatDate(
+                                            transaction
+                                                .transaction_date
+                                        )}
+                                        {" — "}
+                                        {transaction.category
+                                            ?.name ??
+                                            "Unknown Category"}
+                                        {" — "}
+                                        {transaction.payment_method
+                                            ?.name ??
+                                            "Unknown Payment Method"}
+                                        {" — "}
+
+                                        <span
+                                            style={{
+                                                color:
+                                                    transaction.amount <
+                                                        0
+                                                        ? "red"
+                                                        : "green",
+                                            }}
+                                        >
+                                            {formatCurrency(
+                                                transaction.amount
+                                            )}
+                                        </span>
+
+                                        {transaction.description && (
+                                            <>
+                                                {" — "}
+                                                {
+                                                    transaction.description
+                                                }
+                                            </>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                startEditingTransaction(
+                                                    transaction
+                                                )
+                                            }
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        >
+                                            Edit
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setTransactionToDelete(
+                                                    transaction
+                                                );
+                                                setShowDeleteModal(
+                                                    true
+                                                );
+                                            }}
+                                            style={{
+                                                marginLeft: "10px",
+                                            }}
+                                        >
+                                            Delete
+                                        </button>
+                                    </>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+
+                {/* Confirmation dialog displayed before deleting a transaction. */}
+                <ConfirmationModal
+                    isOpen={showDeleteModal}
+                    title="Delete Transaction"
+                    message={`Are you sure you want to delete this transaction?
+This action cannot be undone.`}
+                    confirmText="Delete"
+                    cancelText="Cancel"
+                    onConfirm={() => {
+                        if (transactionToDelete) {
+                            void handleDeleteTransaction(
+                                transactionToDelete.id
+                            );
+                        }
+                    }}
+                    onCancel={() => {
+                        setShowDeleteModal(false);
+                        setTransactionToDelete(null);
+                    }}
+                />
+            </main>
+        </>
     );
 }

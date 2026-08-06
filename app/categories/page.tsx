@@ -11,6 +11,7 @@
 // ------------------------------------------------------------
 
 import { FormEvent, useEffect, useState } from "react";
+import Navigation from "@/components/Navigation";
 import { supabase } from "@/lib/supabase";
 
 type Category = {
@@ -27,7 +28,8 @@ export default function CategoriesPage() {
     // Temporary values used while editing a category.
     const [editingCategoryId, setEditingCategoryId] =
         useState<number | null>(null);
-    const [editedCategoryName, setEditedCategoryName] = useState("");
+    const [editedCategoryName, setEditedCategoryName] =
+        useState("");
 
     // Loads the logged-in user's categories.
     async function loadCategories() {
@@ -66,14 +68,18 @@ export default function CategoriesPage() {
         } = await supabase.auth.getUser();
 
         if (userError || !user) {
-            setMessage("You must be logged in to create a category.");
+            setMessage(
+                "You must be logged in to create a category."
+            );
             return;
         }
 
-        const { error } = await supabase.from("categories").insert({
-            user_id: user.id,
-            name: trimmedName,
-        });
+        const { error } = await supabase
+            .from("categories")
+            .insert({
+                user_id: user.id,
+                name: trimmedName,
+            });
 
         if (error) {
             setMessage(error.message);
@@ -86,6 +92,7 @@ export default function CategoriesPage() {
 
         await loadCategories();
     }
+
     // Deletes the selected category.
     async function handleDeleteCategory(categoryId: number) {
         setMessage("");
@@ -151,100 +158,150 @@ export default function CategoriesPage() {
 
     // Loads categories when the page first opens.
     useEffect(() => {
-        loadCategories();
+        void loadCategories();
     }, []);
 
     return (
-        <main>
-            <h1>Categories</h1>
+        <>
+            <Navigation />
 
-            <form onSubmit={handleAddCategory}>
-                <div>
-                    <label htmlFor="categoryName">Category Name</label>
-                    <input
-                        id="categoryName"
-                        type="text"
-                        value={categoryName}
-                        onChange={(event) => {
-                            setCategoryName(event.target.value);
-                            setMessage("");
+            <main>
+                <h1>Categories</h1>
+
+                <form onSubmit={handleAddCategory}>
+                    <div>
+                        <label htmlFor="categoryName">
+                            Category Name
+                        </label>
+
+                        <input
+                            id="categoryName"
+                            type="text"
+                            value={categoryName}
+                            onChange={(event) => {
+                                setCategoryName(
+                                    event.target.value
+                                );
+                                setMessage("");
+                            }}
+                            required
+                        />
+                    </div>
+
+                    <button type="submit">
+                        Add Category
+                    </button>
+                </form>
+
+                {message && (
+                    <p
+                        style={{
+                            color: isSuccess
+                                ? "green"
+                                : "red",
                         }}
-                        required
-                    />
-                </div>
+                    >
+                        {message}
+                    </p>
+                )}
 
-                <button type="submit">Add Category</button>
-            </form>
+                <h2>Your Categories</h2>
 
-            {message && (
-                <p style={{ color: isSuccess ? "green" : "red" }}>
-                    {message}
-                </p>
-            )}
+                {categories.length === 0 ? (
+                    <p>No categories yet.</p>
+                ) : (
+                    <ul>
+                        {categories.map((category) => (
+                            <li key={category.id}>
+                                {editingCategoryId ===
+                                    category.id ? (
+                                    <>
+                                        <input
+                                            type="text"
+                                            value={
+                                                editedCategoryName
+                                            }
+                                            onChange={(event) =>
+                                                setEditedCategoryName(
+                                                    event.target.value
+                                                )
+                                            }
+                                        />
 
-            <h2>Your Categories</h2>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleUpdateCategory(
+                                                    category.id
+                                                )
+                                            }
+                                            style={{
+                                                marginLeft:
+                                                    "10px",
+                                            }}
+                                        >
+                                            Save
+                                        </button>
 
-            {categories.length === 0 ? (
-                <p>No categories yet.</p>
-            ) : (
-                <ul>
-                    {categories.map((category) => (
-                        <li key={category.id}>
-                            {editingCategoryId === category.id ? (
-                                <>
-                                    <input
-                                        type="text"
-                                        value={editedCategoryName}
-                                        onChange={(event) =>
-                                            setEditedCategoryName(event.target.value)
-                                        }
-                                    />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setEditingCategoryId(
+                                                    null
+                                                );
+                                                setEditedCategoryName(
+                                                    ""
+                                                );
+                                                setMessage("");
+                                            }}
+                                            style={{
+                                                marginLeft:
+                                                    "10px",
+                                            }}
+                                        >
+                                            Cancel
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        {category.name}
 
-                                    <button
-                                        type="button"
-                                        onClick={() => handleUpdateCategory(category.id)}
-                                        style={{ marginLeft: "10px" }}
-                                    >
-                                        Save
-                                    </button>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                startEditingCategory(
+                                                    category
+                                                )
+                                            }
+                                            style={{
+                                                marginLeft:
+                                                    "10px",
+                                            }}
+                                        >
+                                            Edit
+                                        </button>
 
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setEditingCategoryId(null);
-                                            setEditedCategoryName("");
-                                            setMessage("");
-                                        }}
-                                        style={{ marginLeft: "10px" }}
-                                    >
-                                        Cancel
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    {category.name}
-
-                                    <button
-                                        type="button"
-                                        onClick={() => startEditingCategory(category)}
-                                        style={{ marginLeft: "10px" }}
-                                    >
-                                        Edit
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDeleteCategory(category.id)}
-                                        style={{ marginLeft: "10px" }}
-                                    >
-                                        Delete
-                                    </button>
-                                </>
-                            )}
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </main>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleDeleteCategory(
+                                                    category.id
+                                                )
+                                            }
+                                            style={{
+                                                marginLeft:
+                                                    "10px",
+                                            }}
+                                        >
+                                            Delete
+                                        </button>
+                                    </>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </main>
+        </>
     );
 }
