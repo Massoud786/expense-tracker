@@ -1,0 +1,238 @@
+/* ------------------------------------------------------------
+   Login Page Styles
+
+   Styles the authentication card, login form, password
+   controls, status messages, branding, and responsive layout.
+------------------------------------------------------------ */
+
+.page {
+    min-height: 100vh;
+    padding: 40px 20px;
+    background-color: #f4f6fb;
+    color: #1f2937;
+}
+
+.container {
+    width: 100%;
+    max-width: 520px;
+    margin: 90px auto 0;
+}
+
+/* ------------------------------------------------------------
+   Branding
+------------------------------------------------------------ */
+
+.brand {
+    display: block;
+    margin-bottom: 32px;
+    color: #1f2937;
+    font-size: 1.4rem;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.brand:hover {
+    color: #2563eb;
+}
+
+/* ------------------------------------------------------------
+   Authentication Card
+------------------------------------------------------------ */
+
+.authCard {
+    padding: 32px;
+    border-radius: 16px;
+    background-color: #ffffff;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.header {
+    margin-bottom: 28px;
+    text-align: center;
+}
+
+.header h1 {
+    margin: 0 0 10px;
+    color: #1f2937;
+    font-size: 2.2rem;
+}
+
+.header p {
+    margin: 0;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+/* ------------------------------------------------------------
+   Form
+------------------------------------------------------------ */
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.formGroup label {
+    color: #374151;
+    font-weight: 600;
+}
+
+.formGroup input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background-color: #ffffff;
+    color: #1f2937;
+    font-size: 15px;
+    outline: none;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.formGroup input::placeholder {
+    color: #9ca3af;
+}
+
+.formGroup input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* ------------------------------------------------------------
+   Password Field
+------------------------------------------------------------ */
+
+.passwordWrapper {
+    position: relative;
+}
+
+.passwordWrapper input {
+    padding-right: 85px;
+}
+
+.passwordToggle {
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    padding: 4px 6px;
+    border: none;
+    background-color: transparent;
+    color: #2563eb;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transform: translateY(-50%);
+}
+
+.passwordToggle:hover {
+    color: #1d4ed8;
+}
+
+/* ------------------------------------------------------------
+   Primary Button
+------------------------------------------------------------ */
+
+.primaryButton {
+    margin-top: 4px;
+    padding: 12px 18px;
+    border: none;
+    border-radius: 8px;
+    background-color: #2563eb;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        transform 0.2s ease,
+        opacity 0.2s ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+    background-color: #1d4ed8;
+    transform: translateY(-1px);
+}
+
+.primaryButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* ------------------------------------------------------------
+   Messages
+------------------------------------------------------------ */
+
+.successMessage {
+    margin-top: 20px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background-color: #dcfce7;
+    color: #166534;
+    line-height: 1.5;
+}
+
+.errorMessage {
+    margin-top: 20px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background-color: #fee2e2;
+    color: #991b1b;
+    line-height: 1.5;
+}
+
+/* ------------------------------------------------------------
+   Footer
+------------------------------------------------------------ */
+
+.footerText {
+    margin: 24px 0 0;
+    color: #6b7280;
+    text-align: center;
+}
+
+.footerText a {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.footerText a:hover {
+    text-decoration: underline;
+}
+
+/* ------------------------------------------------------------
+   Responsive Layout
+------------------------------------------------------------ */
+
+@media (max-width: 600px) {
+    .page {
+        padding: 24px 16px;
+    }
+
+    .container {
+        margin-top: 50px;
+    }
+
+    .brand {
+        margin-bottom: 24px;
+    }
+
+    .authCard {
+        padding: 24px;
+    }
+
+    .header h1 {
+        font-size: 1.8rem;
+    }
+}
