@@ -20,6 +20,7 @@ import {
 import ConfirmationModal from "@/components/ConfirmationModal";
 import Navigation from "@/components/Navigation";
 import { supabase } from "@/lib/supabase";
+import styles from "./bills.module.css";
 
 type Bill = {
     id: number;
@@ -239,7 +240,9 @@ export default function BillsPage() {
 
         const { error } = await supabase
             .from("bills")
-            .update({ paid: !bill.paid })
+            .update({
+                paid: !bill.paid,
+            })
             .eq("id", bill.id);
 
         if (error) {
@@ -295,9 +298,13 @@ export default function BillsPage() {
             <>
                 <Navigation />
 
-                <main>
-                    <h1>Bills</h1>
-                    <p>Loading bills...</p>
+                <main className={styles.page}>
+                    <div className={styles.container}>
+                        <header className={styles.header}>
+                            <h1>Bills</h1>
+                            <p>Loading bills...</p>
+                        </header>
+                    </div>
                 </main>
             </>
         );
@@ -307,280 +314,400 @@ export default function BillsPage() {
         <>
             <Navigation />
 
-            <main>
-                <h1>Bills</h1>
+            <main className={styles.page}>
+                <div className={styles.container}>
+                    <header className={styles.header}>
+                        <h1>Bills</h1>
 
-                <form onSubmit={handleAddBill}>
-                    <div>
-                        <label htmlFor="billName">
-                            Bill Name
-                        </label>
+                        <p>
+                            Create and manage your upcoming bills and
+                            payment status.
+                        </p>
+                    </header>
 
-                        <input
-                            id="billName"
-                            type="text"
-                            value={billName}
-                            onChange={(event) => {
-                                setBillName(event.target.value);
-                                setMessage("");
-                            }}
-                            required
-                        />
-                    </div>
+                    <section className={styles.formCard}>
+                        <form onSubmit={handleAddBill}>
+                            <div className={styles.formGrid}>
+                                <div className={styles.formGroup}>
+                                    <label htmlFor="billName">
+                                        Bill Name
+                                    </label>
 
-                    <div>
-                        <label htmlFor="amount">
-                            Amount
-                        </label>
+                                    <input
+                                        id="billName"
+                                        type="text"
+                                        value={billName}
+                                        onChange={(event) => {
+                                            setBillName(
+                                                event.target.value
+                                            );
+                                            setMessage("");
+                                        }}
+                                        placeholder="Example: Netflix"
+                                        required
+                                    />
+                                </div>
 
-                        <input
-                            id="amount"
-                            type="number"
-                            min="0.01"
-                            step="0.01"
-                            value={amount}
-                            onChange={(event) => {
-                                setAmount(event.target.value);
-                                setMessage("");
-                            }}
-                            required
-                        />
-                    </div>
+                                <div className={styles.formGroup}>
+                                    <label htmlFor="amount">
+                                        Amount
+                                    </label>
 
-                    <div>
-                        <label htmlFor="dueDate">
-                            Due Date
-                        </label>
+                                    <input
+                                        id="amount"
+                                        type="number"
+                                        min="0.01"
+                                        step="0.01"
+                                        value={amount}
+                                        onChange={(event) => {
+                                            setAmount(
+                                                event.target.value
+                                            );
+                                            setMessage("");
+                                        }}
+                                        placeholder="0.00"
+                                        required
+                                    />
+                                </div>
 
-                        <input
-                            id="dueDate"
-                            type="date"
-                            value={dueDate}
-                            onChange={(event) => {
-                                setDueDate(event.target.value);
-                                setMessage("");
-                            }}
-                            required
-                        />
-                    </div>
+                                <div className={styles.formGroup}>
+                                    <label htmlFor="dueDate">
+                                        Due Date
+                                    </label>
 
-                    <div>
-                        <label htmlFor="paid">
-                            <input
-                                id="paid"
-                                type="checkbox"
-                                checked={paid}
-                                onChange={(event) =>
-                                    setPaid(event.target.checked)
+                                    <input
+                                        id="dueDate"
+                                        type="date"
+                                        value={dueDate}
+                                        onChange={(event) => {
+                                            setDueDate(
+                                                event.target.value
+                                            );
+                                            setMessage("");
+                                        }}
+                                        required
+                                    />
+                                </div>
+
+                                <div
+                                    className={
+                                        styles.checkboxGroup
+                                    }
+                                >
+                                    <label htmlFor="paid">
+                                        <input
+                                            id="paid"
+                                            type="checkbox"
+                                            checked={paid}
+                                            onChange={(event) => {
+                                                setPaid(
+                                                    event.target.checked
+                                                );
+                                                setMessage("");
+                                            }}
+                                        />
+
+                                        <span>
+                                            Bill is already paid
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className={styles.formActions}>
+                                <button
+                                    type="submit"
+                                    className={styles.primaryButton}
+                                >
+                                    Add Bill
+                                </button>
+                            </div>
+                        </form>
+
+                        {message && (
+                            <p
+                                className={
+                                    isSuccess
+                                        ? styles.successMessage
+                                        : styles.errorMessage
                                 }
-                            />
-                            Bill is already paid
-                        </label>
-                    </div>
+                            >
+                                {message}
+                            </p>
+                        )}
+                    </section>
 
-                    <button type="submit">
-                        Add Bill
-                    </button>
-                </form>
+                    <section className={styles.tableCard}>
+                        <div className={styles.sectionHeader}>
+                            <h2>Your Bills</h2>
 
-                {message && (
-                    <p
-                        style={{
-                            color: isSuccess ? "green" : "red",
-                        }}
-                    >
-                        {message}
-                    </p>
-                )}
+                            <p>
+                                Review due dates, payment status, and
+                                manage your saved bills.
+                            </p>
+                        </div>
 
-                <h2>Your Bills</h2>
+                        {bills.length === 0 ? (
+                            <p className={styles.emptyMessage}>
+                                No bills yet.
+                            </p>
+                        ) : (
+                            <div className={styles.tableWrapper}>
+                                <table className={styles.billsTable}>
+                                    <thead>
+                                        <tr>
+                                            <th>Bill</th>
+                                            <th>Amount</th>
+                                            <th>Due Date</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
 
-                {bills.length === 0 ? (
-                    <p>No bills yet.</p>
-                ) : (
-                    <ul>
-                        {bills.map((bill) => (
-                            <li key={bill.id}>
-                                {editingBillId === bill.id ? (
-                                    <>
-                                        <input
-                                            type="text"
-                                            value={editedBillName}
-                                            onChange={(event) =>
-                                                setEditedBillName(
-                                                    event.target.value
-                                                )
-                                            }
-                                        />
+                                    <tbody>
+                                        {bills.map((bill) => (
+                                            <tr key={bill.id}>
+                                                {editingBillId ===
+                                                    bill.id ? (
+                                                    <>
+                                                        <td>
+                                                            <input
+                                                                type="text"
+                                                                value={
+                                                                    editedBillName
+                                                                }
+                                                                onChange={(
+                                                                    event
+                                                                ) =>
+                                                                    setEditedBillName(
+                                                                        event
+                                                                            .target
+                                                                            .value
+                                                                    )
+                                                                }
+                                                                className={
+                                                                    styles.editInput
+                                                                }
+                                                            />
+                                                        </td>
 
-                                        <input
-                                            type="number"
-                                            min="0.01"
-                                            step="0.01"
-                                            value={editedAmount}
-                                            onChange={(event) =>
-                                                setEditedAmount(
-                                                    event.target.value
-                                                )
-                                            }
-                                            style={{
-                                                marginLeft: "10px",
-                                            }}
-                                        />
+                                                        <td>
+                                                            <input
+                                                                type="number"
+                                                                min="0.01"
+                                                                step="0.01"
+                                                                value={
+                                                                    editedAmount
+                                                                }
+                                                                onChange={(
+                                                                    event
+                                                                ) =>
+                                                                    setEditedAmount(
+                                                                        event
+                                                                            .target
+                                                                            .value
+                                                                    )
+                                                                }
+                                                                className={
+                                                                    styles.editInput
+                                                                }
+                                                            />
+                                                        </td>
 
-                                        <input
-                                            type="date"
-                                            value={editedDueDate}
-                                            onChange={(event) =>
-                                                setEditedDueDate(
-                                                    event.target.value
-                                                )
-                                            }
-                                            style={{
-                                                marginLeft: "10px",
-                                            }}
-                                        />
+                                                        <td>
+                                                            <input
+                                                                type="date"
+                                                                value={
+                                                                    editedDueDate
+                                                                }
+                                                                onChange={(
+                                                                    event
+                                                                ) =>
+                                                                    setEditedDueDate(
+                                                                        event
+                                                                            .target
+                                                                            .value
+                                                                    )
+                                                                }
+                                                                className={
+                                                                    styles.editInput
+                                                                }
+                                                            />
+                                                        </td>
 
-                                        <label
-                                            style={{
-                                                marginLeft: "10px",
-                                            }}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={editedPaid}
-                                                onChange={(event) =>
-                                                    setEditedPaid(
-                                                        event.target.checked
-                                                    )
-                                                }
-                                            />
-                                            Paid
-                                        </label>
+                                                        <td>
+                                                            <label
+                                                                className={
+                                                                    styles.editCheckbox
+                                                                }
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={
+                                                                        editedPaid
+                                                                    }
+                                                                    onChange={(
+                                                                        event
+                                                                    ) =>
+                                                                        setEditedPaid(
+                                                                            event
+                                                                                .target
+                                                                                .checked
+                                                                        )
+                                                                    }
+                                                                />
 
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                handleUpdateBill(
-                                                    bill.id
-                                                )
-                                            }
-                                            style={{
-                                                marginLeft: "10px",
-                                            }}
-                                        >
-                                            Save
-                                        </button>
+                                                                <span>
+                                                                    Paid
+                                                                </span>
+                                                            </label>
+                                                        </td>
 
-                                        <button
-                                            type="button"
-                                            onClick={cancelEditing}
-                                            style={{
-                                                marginLeft: "10px",
-                                            }}
-                                        >
-                                            Cancel
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        {bill.bill_name}
-                                        {" — "}
-                                        {formatCurrency(
-                                            bill.amount
-                                        )}
-                                        {" — Due "}
-                                        {formatDate(
-                                            bill.due_date
-                                        )}
-                                        {" — "}
+                                                        <td
+                                                            className={
+                                                                styles.actionsCell
+                                                            }
+                                                        >
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    handleUpdateBill(
+                                                                        bill.id
+                                                                    )
+                                                                }
+                                                                className={`${styles.actionButton} ${styles.saveButton}`}
+                                                            >
+                                                                Save
+                                                            </button>
 
-                                        <strong
-                                            style={{
-                                                color: bill.paid
-                                                    ? "green"
-                                                    : "red",
-                                            }}
-                                        >
-                                            {bill.paid
-                                                ? "Paid"
-                                                : "Unpaid"}
-                                        </strong>
+                                                            <button
+                                                                type="button"
+                                                                onClick={
+                                                                    cancelEditing
+                                                                }
+                                                                className={`${styles.actionButton} ${styles.cancelButton}`}
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </td>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <td>
+                                                            {
+                                                                bill.bill_name
+                                                            }
+                                                        </td>
 
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                handleTogglePaid(
-                                                    bill
-                                                )
-                                            }
-                                            style={{
-                                                marginLeft: "10px",
-                                            }}
-                                        >
-                                            Mark as{" "}
-                                            {bill.paid
-                                                ? "Unpaid"
-                                                : "Paid"}
-                                        </button>
+                                                        <td
+                                                            className={
+                                                                styles.amountCell
+                                                            }
+                                                        >
+                                                            {formatCurrency(
+                                                                bill.amount
+                                                            )}
+                                                        </td>
 
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                startEditingBill(
-                                                    bill
-                                                )
-                                            }
-                                            style={{
-                                                marginLeft: "10px",
-                                            }}
-                                        >
-                                            Edit
-                                        </button>
+                                                        <td>
+                                                            {formatDate(
+                                                                bill.due_date
+                                                            )}
+                                                        </td>
 
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setBillToDelete(
-                                                    bill
-                                                )
-                                            }
-                                            style={{
-                                                marginLeft: "10px",
-                                            }}
-                                        >
-                                            Delete
-                                        </button>
-                                    </>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                )}
+                                                        <td>
+                                                            <span
+                                                                className={
+                                                                    bill.paid
+                                                                        ? styles.paidBadge
+                                                                        : styles.unpaidBadge
+                                                                }
+                                                            >
+                                                                {bill.paid
+                                                                    ? "Paid"
+                                                                    : "Unpaid"}
+                                                            </span>
+                                                        </td>
 
-                <ConfirmationModal
-                    isOpen={billToDelete !== null}
-                    title="Delete Bill"
-                    message={
-                        billToDelete
-                            ? `Are you sure you want to delete "${billToDelete.bill_name}"? This action cannot be undone.`
-                            : ""
-                    }
-                    confirmText={
-                        isDeleting
-                            ? "Deleting..."
-                            : "Delete"
-                    }
-                    cancelText="Cancel"
-                    onConfirm={() => {
-                        void handleDeleteBill();
-                    }}
-                    onCancel={() => {
-                        if (!isDeleting) {
-                            setBillToDelete(null);
+                                                        <td
+                                                            className={
+                                                                styles.actionsCell
+                                                            }
+                                                        >
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    handleTogglePaid(
+                                                                        bill
+                                                                    )
+                                                                }
+                                                                className={`${styles.actionButton} ${styles.statusButton}`}
+                                                            >
+                                                                Mark as{" "}
+                                                                {bill.paid
+                                                                    ? "Unpaid"
+                                                                    : "Paid"}
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    startEditingBill(
+                                                                        bill
+                                                                    )
+                                                                }
+                                                                className={`${styles.actionButton} ${styles.editButton}`}
+                                                            >
+                                                                Edit
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    setBillToDelete(
+                                                                        bill
+                                                                    )
+                                                                }
+                                                                className={`${styles.actionButton} ${styles.deleteButton}`}
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </td>
+                                                    </>
+                                                )}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </section>
+
+                    {/* Confirmation dialog displayed before deleting a bill. */}
+                    <ConfirmationModal
+                        isOpen={billToDelete !== null}
+                        title="Delete Bill"
+                        message={
+                            billToDelete
+                                ? `Are you sure you want to delete "${billToDelete.bill_name}"? This action cannot be undone.`
+                                : ""
                         }
-                    }}
-                />
+                        confirmText={
+                            isDeleting
+                                ? "Deleting..."
+                                : "Delete"
+                        }
+                        cancelText="Cancel"
+                        onConfirm={() => {
+                            void handleDeleteBill();
+                        }}
+                        onCancel={() => {
+                            if (!isDeleting) {
+                                setBillToDelete(null);
+                            }
+                        }}
+                    />
+                </div>
             </main>
         </>
     );
