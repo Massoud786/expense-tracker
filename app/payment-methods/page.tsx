@@ -13,6 +13,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Navigation from "@/components/Navigation";
 import { supabase } from "@/lib/supabase";
+import styles from "./payment-methods.module.css";
 
 type PaymentMethod = {
     id: number;
@@ -188,175 +189,253 @@ export default function PaymentMethodsPage() {
         <>
             <Navigation />
 
-            <main>
-                <h1>Payment Methods</h1>
+            <main className={styles.page}>
+                <div className={styles.container}>
+                    <header className={styles.header}>
+                        <h1>Payment Methods</h1>
+                        <p>
+                            Add and manage the payment methods you
+                            use for transactions.
+                        </p>
+                    </header>
 
-                <form onSubmit={handleAddPaymentMethod}>
-                    <div>
-                        <label htmlFor="paymentMethodName">
-                            Payment Method Name
-                        </label>
+                    <section className={styles.formCard}>
+                        <form onSubmit={handleAddPaymentMethod}>
+                            <div className={styles.formGrid}>
+                                <div className={styles.formGroup}>
+                                    <label htmlFor="paymentMethodName">
+                                        Payment Method Name
+                                    </label>
 
-                        <input
-                            id="paymentMethodName"
-                            type="text"
-                            value={paymentMethodName}
-                            onChange={(event) => {
-                                setPaymentMethodName(
-                                    event.target.value
-                                );
-                                setMessage("");
-                            }}
-                            required
-                        />
-                    </div>
+                                    <input
+                                        id="paymentMethodName"
+                                        type="text"
+                                        value={paymentMethodName}
+                                        onChange={(event) => {
+                                            setPaymentMethodName(
+                                                event.target.value
+                                            );
+                                            setMessage("");
+                                        }}
+                                        placeholder="Example: Chase"
+                                        required
+                                    />
+                                </div>
 
-                    <div>
-                        <label htmlFor="paymentMethodType">
-                            Payment Method Type
-                        </label>
+                                <div className={styles.formGroup}>
+                                    <label htmlFor="paymentMethodType">
+                                        Payment Method Type
+                                    </label>
 
-                        <input
-                            id="paymentMethodType"
-                            type="text"
-                            value={paymentMethodType}
-                            onChange={(event) => {
-                                setPaymentMethodType(
-                                    event.target.value
-                                );
-                                setMessage("");
-                            }}
-                            required
-                        />
-                    </div>
+                                    <input
+                                        id="paymentMethodType"
+                                        type="text"
+                                        value={paymentMethodType}
+                                        onChange={(event) => {
+                                            setPaymentMethodType(
+                                                event.target.value
+                                            );
+                                            setMessage("");
+                                        }}
+                                        placeholder="Example: Debit Card"
+                                        required
+                                    />
+                                </div>
+                            </div>
 
-                    <button type="submit">
-                        Add Payment Method
-                    </button>
-                </form>
+                            <div className={styles.formActions}>
+                                <button
+                                    type="submit"
+                                    className={styles.primaryButton}
+                                >
+                                    Add Payment Method
+                                </button>
+                            </div>
+                        </form>
 
-                {message && (
-                    <p
-                        style={{
-                            color: isSuccess ? "green" : "red",
-                        }}
-                    >
-                        {message}
-                    </p>
-                )}
+                        {message && (
+                            <p
+                                className={
+                                    isSuccess
+                                        ? styles.successMessage
+                                        : styles.errorMessage
+                                }
+                            >
+                                {message}
+                            </p>
+                        )}
+                    </section>
 
-                <h2>Your Payment Methods</h2>
+                    <section className={styles.tableCard}>
+                        <div className={styles.sectionHeader}>
+                            <h2>Your Payment Methods</h2>
+                            <p>
+                                Review and manage your saved payment
+                                methods.
+                            </p>
+                        </div>
 
-                {paymentMethods.length === 0 ? (
-                    <p>No payment methods yet.</p>
-                ) : (
-                    <ul>
-                        {paymentMethods.map((paymentMethod) => (
-                            <li key={paymentMethod.id}>
-                                {editingPaymentMethodId ===
-                                    paymentMethod.id ? (
-                                    <>
-                                        <input
-                                            type="text"
-                                            value={
-                                                editedPaymentMethodName
-                                            }
-                                            onChange={(event) =>
-                                                setEditedPaymentMethodName(
-                                                    event.target.value
-                                                )
-                                            }
-                                        />
+                        {paymentMethods.length === 0 ? (
+                            <p className={styles.emptyMessage}>
+                                No payment methods yet.
+                            </p>
+                        ) : (
+                            <div className={styles.tableWrapper}>
+                                <table className={styles.paymentTable}>
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Type</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
 
-                                        <input
-                                            type="text"
-                                            value={
-                                                editedPaymentMethodType
-                                            }
-                                            onChange={(event) =>
-                                                setEditedPaymentMethodType(
-                                                    event.target.value
-                                                )
-                                            }
-                                            style={{
-                                                marginLeft: "10px",
-                                            }}
-                                        />
+                                    <tbody>
+                                        {paymentMethods.map(
+                                            (paymentMethod) => (
+                                                <tr
+                                                    key={
+                                                        paymentMethod.id
+                                                    }
+                                                >
+                                                    {editingPaymentMethodId ===
+                                                        paymentMethod.id ? (
+                                                        <>
+                                                            <td>
+                                                                <input
+                                                                    type="text"
+                                                                    value={
+                                                                        editedPaymentMethodName
+                                                                    }
+                                                                    onChange={(
+                                                                        event
+                                                                    ) =>
+                                                                        setEditedPaymentMethodName(
+                                                                            event
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    }
+                                                                    className={
+                                                                        styles.editInput
+                                                                    }
+                                                                />
+                                                            </td>
 
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                handleUpdatePaymentMethod(
-                                                    paymentMethod.id
-                                                )
-                                            }
-                                            style={{
-                                                marginLeft: "10px",
-                                            }}
-                                        >
-                                            Save
-                                        </button>
+                                                            <td>
+                                                                <input
+                                                                    type="text"
+                                                                    value={
+                                                                        editedPaymentMethodType
+                                                                    }
+                                                                    onChange={(
+                                                                        event
+                                                                    ) =>
+                                                                        setEditedPaymentMethodType(
+                                                                            event
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    }
+                                                                    className={
+                                                                        styles.editInput
+                                                                    }
+                                                                />
+                                                            </td>
 
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setEditingPaymentMethodId(
-                                                    null
-                                                );
-                                                setEditedPaymentMethodName(
-                                                    ""
-                                                );
-                                                setEditedPaymentMethodType(
-                                                    ""
-                                                );
-                                                setMessage("");
-                                            }}
-                                            style={{
-                                                marginLeft: "10px",
-                                            }}
-                                        >
-                                            Cancel
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        {paymentMethod.name}
-                                        {" — "}
-                                        {paymentMethod.type}
+                                                            <td
+                                                                className={
+                                                                    styles.actionsCell
+                                                                }
+                                                            >
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        handleUpdatePaymentMethod(
+                                                                            paymentMethod.id
+                                                                        )
+                                                                    }
+                                                                    className={`${styles.actionButton} ${styles.saveButton}`}
+                                                                >
+                                                                    Save
+                                                                </button>
 
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                startEditingPaymentMethod(
-                                                    paymentMethod
-                                                )
-                                            }
-                                            style={{
-                                                marginLeft: "10px",
-                                            }}
-                                        >
-                                            Edit
-                                        </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setEditingPaymentMethodId(
+                                                                            null
+                                                                        );
+                                                                        setEditedPaymentMethodName(
+                                                                            ""
+                                                                        );
+                                                                        setEditedPaymentMethodType(
+                                                                            ""
+                                                                        );
+                                                                        setMessage(
+                                                                            ""
+                                                                        );
+                                                                    }}
+                                                                    className={`${styles.actionButton} ${styles.cancelButton}`}
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </td>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <td>
+                                                                {
+                                                                    paymentMethod.name
+                                                                }
+                                                            </td>
 
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                handleDeletePaymentMethod(
-                                                    paymentMethod.id
-                                                )
-                                            }
-                                            style={{
-                                                marginLeft: "10px",
-                                            }}
-                                        >
-                                            Delete
-                                        </button>
-                                    </>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                )}
+                                                            <td>
+                                                                {
+                                                                    paymentMethod.type
+                                                                }
+                                                            </td>
+
+                                                            <td
+                                                                className={
+                                                                    styles.actionsCell
+                                                                }
+                                                            >
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        startEditingPaymentMethod(
+                                                                            paymentMethod
+                                                                        )
+                                                                    }
+                                                                    className={`${styles.actionButton} ${styles.editButton}`}
+                                                                >
+                                                                    Edit
+                                                                </button>
+
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        handleDeletePaymentMethod(
+                                                                            paymentMethod.id
+                                                                        )
+                                                                    }
+                                                                    className={`${styles.actionButton} ${styles.deleteButton}`}
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </td>
+                                                        </>
+                                                    )}
+                                                </tr>
+                                            )
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </section>
+                </div>
             </main>
         </>
     );

@@ -1,0 +1,291 @@
+/* ------------------------------------------------------------
+   Transactions Page Styles
+
+   Styles the transaction form, transaction table, action
+   buttons, status messages, and responsive page layout.
+------------------------------------------------------------ */
+
+.page {
+    min-height: 100vh;
+    padding: 40px 20px;
+    background-color: #f4f6f8;
+    color: #1f2937;
+}
+
+.container {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.header {
+    margin-bottom: 28px;
+}
+
+.header h1 {
+    margin: 0 0 8px;
+    font-size: 2rem;
+}
+
+.header p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.formCard {
+    margin-bottom: 28px;
+    padding: 24px;
+    border-radius: 12px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.formGroup label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.formGroup input,
+.formGroup select {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background-color: #ffffff;
+    color: #111827;
+    font-size: 0.95rem;
+    outline: none;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.formGroup input:focus,
+.formGroup select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.fullWidth {
+    grid-column: 1 / -1;
+}
+
+.formActions {
+    margin-top: 20px;
+}
+
+.primaryButton {
+    padding: 11px 18px;
+    border: none;
+    border-radius: 8px;
+    background-color: #2563eb;
+    color: #ffffff;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+    background-color: #1d4ed8;
+    transform: translateY(-1px);
+}
+
+.primaryButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.successMessage,
+.errorMessage,
+.warningMessage {
+    margin: 18px 0;
+    padding: 12px 14px;
+    border-radius: 8px;
+}
+
+.successMessage {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.errorMessage {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+.warningMessage {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.transactionsCard {
+    padding: 24px;
+    border-radius: 12px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.sectionHeader {
+    margin-bottom: 20px;
+}
+
+.sectionHeader h2 {
+    margin: 0 0 6px;
+}
+
+.sectionHeader p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.emptyMessage {
+    margin: 0;
+    color: #6b7280;
+}
+
+.tableWrapper {
+    overflow-x: auto;
+}
+
+.transactionsTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.transactionsTable th,
+.transactionsTable td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.transactionsTable th {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6b7280;
+}
+
+.transactionsTable tbody tr:nth-child(even) {
+    background-color: #f9fafb;
+}
+
+.transactionsTable tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.transactionsTable tbody tr:hover {
+    background-color: #eef2ff;
+}
+
+.transactionsTable tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.amountCell {
+    text-align: right !important;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.positiveAmount {
+    color: #15803d;
+}
+
+.negativeAmount {
+    color: #b91c1c;
+}
+
+.descriptionCell {
+    min-width: 180px;
+}
+
+.actionsCell {
+    white-space: nowrap;
+}
+
+.editInput,
+.editSelect {
+    min-width: 120px;
+    padding: 8px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    background-color: #ffffff;
+    color: #111827;
+}
+
+.actionButton {
+    margin-left: 8px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 7px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.editButton {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+}
+
+.saveButton {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.cancelButton {
+    background-color: #e5e7eb;
+    color: #374151;
+}
+
+.deleteButton {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+.actionButton:hover {
+    opacity: 0.85;
+}
+
+@media (max-width: 768px) {
+    .page {
+        padding: 24px 16px;
+    }
+
+    .header h1 {
+        font-size: 1.6rem;
+    }
+
+    .formGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .fullWidth {
+        grid-column: auto;
+    }
+
+    .formCard,
+    .transactionsCard {
+        padding: 20px;
+    }
+
+    .transactionsTable th,
+    .transactionsTable td {
+        padding: 12px 10px;
+    }
+}
