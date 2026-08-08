@@ -9,11 +9,22 @@
 // - Total income
 // - Total expenses
 // - Unpaid bills
+// - Monthly income vs. expenses chart
 // - Five most recent transactions
 // - Five upcoming unpaid bills
 // ------------------------------------------------------------
 
 import { useCallback, useEffect, useState } from "react";
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Legend,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from "recharts";
 import Navigation from "@/components/Navigation";
 import { supabase } from "@/lib/supabase";
 import styles from "./dashboard.module.css";
@@ -43,6 +54,12 @@ type FinancialTotals = {
     totalIncome: number;
     totalExpenses: number;
     currentBalance: number;
+};
+
+type MonthlyChartData = {
+    month: string;
+    income: number;
+    expenses: number;
 };
 
 // Formats a number as U.S. currency.
@@ -91,6 +108,59 @@ function calculateBillsDue(bills: DashboardBill[]) {
     );
 }
 
+// Creates chart data for the last six calendar months.
+function calculateMonthlyData(
+    transactions: DashboardTransaction[]
+): MonthlyChartData[] {
+    const monthlyData: MonthlyChartData[] = [];
+    const today = new Date();
+
+    // Start five months ago and continue through the current month.
+    for (let i = 5; i >= 0; i--) {
+        const date = new Date(
+            today.getFullYear(),
+            today.getMonth() - i,
+            1
+        );
+
+        const monthLabel = date.toLocaleDateString("en-US", {
+            month: "short",
+            year: "numeric",
+        });
+
+        let income = 0;
+        let expenses = 0;
+
+        // Add transactions that belong to this month.
+        transactions.forEach((transaction) => {
+            const transactionDate = new Date(
+                `${transaction.transaction_date}T00:00:00`
+            );
+
+            const sameMonth =
+                transactionDate.getMonth() === date.getMonth() &&
+                transactionDate.getFullYear() ===
+                date.getFullYear();
+
+            if (sameMonth) {
+                if (transaction.amount > 0) {
+                    income += transaction.amount;
+                } else {
+                    expenses += Math.abs(transaction.amount);
+                }
+            }
+        });
+
+        monthlyData.push({
+            month: monthLabel,
+            income,
+            expenses,
+        });
+    }
+
+    return monthlyData;
+}
+
 // Returns only the five most recent transactions.
 function getRecentTransactions(
     transactions: DashboardTransaction[]
@@ -110,6 +180,9 @@ export default function DashboardPage() {
 
     const [billsDue, setBillsDue] = useState(0);
     const [unpaidBillCount, setUnpaidBillCount] = useState(0);
+
+    const [monthlyChartData, setMonthlyChartData] =
+        useState<MonthlyChartData[]>([]);
 
     const [recentTransactions, setRecentTransactions] =
         useState<DashboardTransaction[]>([]);
@@ -178,10 +251,15 @@ export default function DashboardPage() {
             ]);
 
             const totals = calculateTotals(transactions);
-            const recent = getRecentTransactions(transactions);
+            const chartData =
+                calculateMonthlyData(transactions);
+            const recent =
+                getRecentTransactions(transactions);
 
-            const totalBillsDue = calculateBillsDue(bills);
-            const upcoming = getUpcomingBills(bills);
+            const totalBillsDue =
+                calculateBillsDue(bills);
+            const upcoming =
+                getUpcomingBills(bills);
 
             setTotalIncome(totals.totalIncome);
             setTotalExpenses(totals.totalExpenses);
@@ -189,6 +267,8 @@ export default function DashboardPage() {
 
             setBillsDue(totalBillsDue);
             setUnpaidBillCount(bills.length);
+
+            setMonthlyChartData(chartData);
 
             setRecentTransactions(recent);
             setUpcomingBills(upcoming);
@@ -291,6 +371,79 @@ export default function DashboardPage() {
                                     : `${unpaidBillCount} unpaid bills`}
                             </span>
                         </article>
+                    </section>
+
+                    {/* Monthly financial comparison chart. */}
+                    <section className={styles.chartSection}>
+                        <div className={styles.sectionHeader}>
+                            <h2>Income vs. Expenses</h2>
+
+                            <p>
+                                Compare your income and expenses
+                                over the last six months.
+                            </p>
+                        </div>
+
+                        <div className={styles.chartContainer}>
+                            <ResponsiveContainer
+                                width="100%"
+                                height="100%"
+                            >
+                                <BarChart
+                                    data={monthlyChartData}
+                                    margin={{
+                                        top: 10,
+                                        right: 10,
+                                        left: 10,
+                                        bottom: 5,
+                                    }}
+                                >
+                                    <CartesianGrid
+                                        strokeDasharray="3 3"
+                                        vertical={false}
+                                    />
+
+                                    <XAxis
+                                        dataKey="month"
+                                        tickLine={false}
+                                    />
+
+                                    <YAxis
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickFormatter={(value) =>
+                                            `$${Number(
+                                                value
+                                            ).toLocaleString()}`
+                                        }
+                                    />
+
+                                    <Tooltip
+                                        formatter={(value) =>
+                                            formatCurrency(
+                                                Number(value)
+                                            )
+                                        }
+                                    />
+
+                                    <Legend />
+
+                                    <Bar
+                                        dataKey="income"
+                                        name="Income"
+                                        fill="#15803d"
+                                        radius={[6, 6, 0, 0]}
+                                    />
+
+                                    <Bar
+                                        dataKey="expenses"
+                                        name="Expenses"
+                                        fill="#b91c1c"
+                                        radius={[6, 6, 0, 0]}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </section>
 
                     {/* Most recent transaction activity. */}
@@ -398,7 +551,9 @@ export default function DashboardPage() {
                             </p>
                         ) : (
                             <div className={styles.tableWrapper}>
-                                <table className={styles.billsTable}>
+                                <table
+                                    className={styles.billsTable}
+                                >
                                     <thead>
                                         <tr>
                                             <th>Bill</th>
@@ -409,39 +564,43 @@ export default function DashboardPage() {
                                     </thead>
 
                                     <tbody>
-                                        {upcomingBills.map((bill) => (
-                                            <tr key={bill.id}>
-                                                <td>
-                                                    {bill.bill_name}
-                                                </td>
+                                        {upcomingBills.map(
+                                            (bill) => (
+                                                <tr key={bill.id}>
+                                                    <td>
+                                                        {
+                                                            bill.bill_name
+                                                        }
+                                                    </td>
 
-                                                <td>
-                                                    {formatDate(
-                                                        bill.due_date
-                                                    )}
-                                                </td>
+                                                    <td>
+                                                        {formatDate(
+                                                            bill.due_date
+                                                        )}
+                                                    </td>
 
-                                                <td>
-                                                    <span
+                                                    <td>
+                                                        <span
+                                                            className={
+                                                                styles.unpaidBadge
+                                                            }
+                                                        >
+                                                            Unpaid
+                                                        </span>
+                                                    </td>
+
+                                                    <td
                                                         className={
-                                                            styles.unpaidBadge
+                                                            styles.billTableAmount
                                                         }
                                                     >
-                                                        Unpaid
-                                                    </span>
-                                                </td>
-
-                                                <td
-                                                    className={
-                                                        styles.billTableAmount
-                                                    }
-                                                >
-                                                    {formatCurrency(
-                                                        bill.amount
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                        {formatCurrency(
+                                                            bill.amount
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            )
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
