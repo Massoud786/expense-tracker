@@ -4,8 +4,13 @@
 // Dashboard Page
 //
 // Displays a summary of the logged-in user's financial data,
-// including current balance, total income, total expenses,
-// and the five most recent transactions.
+// including:
+// - Current balance
+// - Total income
+// - Total expenses
+// - Unpaid bills
+// - Five most recent transactions
+// - Five upcoming unpaid bills
 // ------------------------------------------------------------
 
 import { useCallback, useEffect, useState } from "react";
@@ -24,6 +29,14 @@ type DashboardTransaction = {
     payment_method: {
         name: string;
     } | null;
+};
+
+type DashboardBill = {
+    id: number;
+    bill_name: string;
+    amount: number;
+    due_date: string;
+    paid: boolean;
 };
 
 type FinancialTotals = {
@@ -70,6 +83,14 @@ function calculateTotals(
     };
 }
 
+// Calculates the total amount still owed across unpaid bills.
+function calculateBillsDue(bills: DashboardBill[]) {
+    return bills.reduce(
+        (total, bill) => total + bill.amount,
+        0
+    );
+}
+
 // Returns only the five most recent transactions.
 function getRecentTransactions(
     transactions: DashboardTransaction[]
@@ -77,13 +98,24 @@ function getRecentTransactions(
     return transactions.slice(0, 5);
 }
 
+// Returns only the five nearest upcoming unpaid bills.
+function getUpcomingBills(bills: DashboardBill[]) {
+    return bills.slice(0, 5);
+}
+
 export default function DashboardPage() {
     const [totalIncome, setTotalIncome] = useState(0);
     const [totalExpenses, setTotalExpenses] = useState(0);
     const [currentBalance, setCurrentBalance] = useState(0);
 
+    const [billsDue, setBillsDue] = useState(0);
+    const [unpaidBillCount, setUnpaidBillCount] = useState(0);
+
     const [recentTransactions, setRecentTransactions] =
         useState<DashboardTransaction[]>([]);
+
+    const [upcomingBills, setUpcomingBills] =
+        useState<DashboardBill[]>([]);
 
     const [message, setMessage] = useState("");
     const [isLoading, setIsLoading] = useState(true);
@@ -110,20 +142,56 @@ export default function DashboardPage() {
         return (data ?? []) as unknown as DashboardTransaction[];
     }, []);
 
-    // Loads the dashboard data and updates each summary section.
+    // Loads unpaid bills ordered by the nearest due date.
+    const loadBills = useCallback(async () => {
+        const { data, error } = await supabase
+            .from("bills")
+            .select(`
+                id,
+                bill_name,
+                amount,
+                due_date,
+                paid
+            `)
+            .eq("paid", false)
+            .order("due_date", { ascending: true })
+            .order("id", { ascending: true });
+
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        return (data ?? []) as DashboardBill[];
+    }, []);
+
+    // Loads all information needed by the dashboard.
     const loadDashboard = useCallback(async () => {
         setIsLoading(true);
         setMessage("");
 
         try {
-            const transactions = await loadTransactions();
+            // Load transactions and bills at the same time so the
+            // dashboard does not wait for one request before the other.
+            const [transactions, bills] = await Promise.all([
+                loadTransactions(),
+                loadBills(),
+            ]);
+
             const totals = calculateTotals(transactions);
             const recent = getRecentTransactions(transactions);
+
+            const totalBillsDue = calculateBillsDue(bills);
+            const upcoming = getUpcomingBills(bills);
 
             setTotalIncome(totals.totalIncome);
             setTotalExpenses(totals.totalExpenses);
             setCurrentBalance(totals.currentBalance);
+
+            setBillsDue(totalBillsDue);
+            setUnpaidBillCount(bills.length);
+
             setRecentTransactions(recent);
+            setUpcomingBills(upcoming);
         } catch (error) {
             setMessage(
                 error instanceof Error
@@ -133,7 +201,7 @@ export default function DashboardPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [loadTransactions]);
+    }, [loadBills, loadTransactions]);
 
     // Load dashboard information when the page first opens.
     useEffect(() => {
@@ -165,9 +233,10 @@ export default function DashboardPage() {
                 <div className={styles.container}>
                     <header className={styles.header}>
                         <h1>Expense Dashboard</h1>
+
                         <p>
-                            Review your balance, income, expenses, and recent
-                            activity.
+                            Review your balance, income, expenses,
+                            upcoming bills, and recent activity.
                         </p>
                     </header>
 
@@ -177,6 +246,7 @@ export default function DashboardPage() {
                         </p>
                     )}
 
+                    {/* Financial summary cards. */}
                     <section className={styles.summaryGrid}>
                         <article className={styles.summaryCard}>
                             <h2>Current Balance</h2>
@@ -207,13 +277,30 @@ export default function DashboardPage() {
                                 {formatCurrency(totalExpenses)}
                             </p>
                         </article>
+
+                        <article className={styles.summaryCard}>
+                            <h2>Bills Due</h2>
+
+                            <p className={styles.billAmount}>
+                                {formatCurrency(billsDue)}
+                            </p>
+
+                            <span className={styles.cardDetail}>
+                                {unpaidBillCount === 1
+                                    ? "1 unpaid bill"
+                                    : `${unpaidBillCount} unpaid bills`}
+                            </span>
+                        </article>
                     </section>
 
+                    {/* Most recent transaction activity. */}
                     <section className={styles.transactionsSection}>
                         <div className={styles.sectionHeader}>
                             <h2>Recent Transactions</h2>
+
                             <p>
-                                Showing up to five recent transactions.
+                                Showing up to five recent
+                                transactions.
                             </p>
                         </div>
 
@@ -224,7 +311,9 @@ export default function DashboardPage() {
                         ) : (
                             <div className={styles.tableWrapper}>
                                 <table
-                                    className={styles.transactionsTable}
+                                    className={
+                                        styles.transactionsTable
+                                    }
                                 >
                                     <thead>
                                         <tr>
@@ -239,7 +328,11 @@ export default function DashboardPage() {
                                     <tbody>
                                         {recentTransactions.map(
                                             (transaction) => (
-                                                <tr key={transaction.id}>
+                                                <tr
+                                                    key={
+                                                        transaction.id
+                                                    }
+                                                >
                                                     <td>
                                                         {formatDate(
                                                             transaction
@@ -248,7 +341,8 @@ export default function DashboardPage() {
                                                     </td>
 
                                                     <td>
-                                                        {transaction.category
+                                                        {transaction
+                                                            .category
                                                             ?.name ??
                                                             "Unknown Category"}
                                                     </td>
@@ -281,6 +375,73 @@ export default function DashboardPage() {
                                                 </tr>
                                             )
                                         )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </section>
+
+                    {/* Upcoming bills ordered by due date. */}
+                    <section className={styles.billsSection}>
+                        <div className={styles.sectionHeader}>
+                            <h2>Upcoming Bills</h2>
+
+                            <p>
+                                Showing up to five unpaid bills
+                                with the nearest due dates.
+                            </p>
+                        </div>
+
+                        {upcomingBills.length === 0 ? (
+                            <p className={styles.emptyMessage}>
+                                You have no unpaid bills.
+                            </p>
+                        ) : (
+                            <div className={styles.tableWrapper}>
+                                <table className={styles.billsTable}>
+                                    <thead>
+                                        <tr>
+                                            <th>Bill</th>
+                                            <th>Due Date</th>
+                                            <th>Status</th>
+                                            <th>Amount</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        {upcomingBills.map((bill) => (
+                                            <tr key={bill.id}>
+                                                <td>
+                                                    {bill.bill_name}
+                                                </td>
+
+                                                <td>
+                                                    {formatDate(
+                                                        bill.due_date
+                                                    )}
+                                                </td>
+
+                                                <td>
+                                                    <span
+                                                        className={
+                                                            styles.unpaidBadge
+                                                        }
+                                                    >
+                                                        Unpaid
+                                                    </span>
+                                                </td>
+
+                                                <td
+                                                    className={
+                                                        styles.billTableAmount
+                                                    }
+                                                >
+                                                    {formatCurrency(
+                                                        bill.amount
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
                                     </tbody>
                                 </table>
                             </div>
