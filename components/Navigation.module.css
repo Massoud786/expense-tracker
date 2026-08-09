@@ -1,8 +1,8 @@
 /* ------------------------------------------------------------
-   Navigation Styles
+Navigation Styles
 
-   Styles the application brand, navigation links, active page,
-   logout button, and responsive mobile layout.
+Styles the application brand, navigation links, active page,
+logout button, and responsive mobile layout.
 ------------------------------------------------------------ */
 
 .navigation {
@@ -14,13 +14,13 @@
 
 .container {
     width: 100%;
-    max-width: 1100px;
+    max-width: 1200px;
     min-height: 72px;
     margin: 0 auto;
     padding: 0 20px;
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 18px;
 }
 
 .brand {
@@ -34,17 +34,19 @@
 .links {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 2px;
     flex: 1;
+    min-width: 0;
 }
 
 .link {
-    padding: 10px 12px;
+    padding: 10px 9px;
     border-radius: 8px;
     color: #4b5563;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 500;
     text-decoration: none;
+    white-space: nowrap;
     transition:
         color 0.2s ease,
         background-color 0.2s ease;
@@ -61,12 +63,14 @@
 }
 
 .logoutButton {
+    flex-shrink: 0;
     padding: 10px 16px;
     border: none;
     border-radius: 8px;
     background-color: #b91c1c;
     color: #ffffff;
     font-weight: 600;
+    white-space: nowrap;
     cursor: pointer;
     transition:
         background-color 0.2s ease,
@@ -84,11 +88,15 @@
 }
 
 .errorMessage {
-    max-width: 1100px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px 12px;
     color: #b91c1c;
 }
+
+/* ------------------------------------------------------------
+Responsive Navigation
+------------------------------------------------------------ */
 
 @media (max-width: 900px) {
     .container {
@@ -100,10 +108,7 @@
         order: 3;
         width: 100%;
         overflow-x: auto;
-    }
-
-    .link {
-        white-space: nowrap;
+        padding-bottom: 2px;
     }
 
     .logoutButton {
