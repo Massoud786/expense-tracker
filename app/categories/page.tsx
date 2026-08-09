@@ -99,13 +99,41 @@ export default function CategoriesPage() {
         setMessage("");
         setIsSuccess(false);
 
+        // Check whether this category is currently used by a transaction.
+        const { count, error: transactionError } = await supabase
+            .from("transactions")
+            .select("id", {
+                count: "exact",
+                head: true,
+            })
+            .eq("category_id", categoryId);
+
+        if (transactionError) {
+            setMessage(
+                "Unable to check whether this category is being used."
+            );
+            return;
+        }
+
+        // Do not allow categories used by transactions to be deleted.
+        if (count && count > 0) {
+            setMessage(
+                "This category cannot be deleted because it is being " +
+                "used by one or more transactions. Update or delete " +
+                "those transactions first."
+            );
+            return;
+        }
+
         const { error } = await supabase
             .from("categories")
             .delete()
             .eq("id", categoryId);
 
         if (error) {
-            setMessage(error.message);
+            setMessage(
+                "Unable to delete this category. Please try again."
+            );
             return;
         }
 

@@ -111,13 +111,42 @@ export default function PaymentMethodsPage() {
         setMessage("");
         setIsSuccess(false);
 
+        // Check whether this payment method is currently used
+        // by one or more transactions.
+        const { count, error: transactionError } = await supabase
+            .from("transactions")
+            .select("id", {
+                count: "exact",
+                head: true,
+            })
+            .eq("payment_method_id", paymentMethodId);
+
+        if (transactionError) {
+            setMessage(
+                "Unable to check whether this payment method is being used."
+            );
+            return;
+        }
+
+        // Prevent deletion when existing transactions depend on it.
+        if (count && count > 0) {
+            setMessage(
+                "This payment method cannot be deleted because it is being " +
+                "used by one or more transactions. Update or delete " +
+                "those transactions first."
+            );
+            return;
+        }
+
         const { error } = await supabase
             .from("payment_methods")
             .delete()
             .eq("id", paymentMethodId);
 
         if (error) {
-            setMessage(error.message);
+            setMessage(
+                "Unable to delete this payment method. Please try again."
+            );
             return;
         }
 
