@@ -19,6 +19,7 @@ const navigationLinks = [
     { href: "/categories", label: "Categories" },
     { href: "/payment-methods", label: "Payment Methods" },
     { href: "/bills", label: "Bills" },
+    { href: "/budgets", label: "Budgets" },
 ];
 
 export default function Navigation() {
@@ -60,7 +61,8 @@ export default function Navigation() {
                     aria-label="Main navigation"
                 >
                     {navigationLinks.map((link) => {
-                        const isActive = pathname === link.href;
+                        const isActive =
+                            pathname === link.href;
 
                         return (
                             <Link
@@ -84,7 +86,9 @@ export default function Navigation() {
                     disabled={isLoggingOut}
                     className={styles.logoutButton}
                 >
-                    {isLoggingOut ? "Logging out..." : "Log Out"}
+                    {isLoggingOut
+                        ? "Logging out..."
+                        : "Log Out"}
                 </button>
             </div>
 
