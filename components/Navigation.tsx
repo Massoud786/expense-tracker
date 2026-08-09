@@ -20,6 +20,7 @@ const navigationLinks = [
     { href: "/payment-methods", label: "Payment Methods" },
     { href: "/bills", label: "Bills" },
     { href: "/budgets", label: "Budgets" },
+    { href: "/reports", label: "Reports" },
 ];
 
 export default function Navigation() {
