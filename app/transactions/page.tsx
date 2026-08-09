@@ -6,6 +6,8 @@
 // Allows authenticated users to:
 // - Create transactions
 // - View their transactions
+// - Search transactions
+// - Filter transactions
 // - Update existing transactions
 // - Delete transactions
 //
@@ -17,6 +19,7 @@ import {
     FormEvent,
     useCallback,
     useEffect,
+    useMemo,
     useState,
 } from "react";
 import ConfirmationModal from "@/components/ConfirmationModal";
@@ -25,6 +28,11 @@ import { supabase } from "@/lib/supabase";
 import styles from "./transactions.module.css";
 
 type TransactionType = "Expense" | "Income";
+
+type TransactionTypeFilter =
+    | "All"
+    | "Expense"
+    | "Income";
 
 type Category = {
     id: number;
@@ -87,19 +95,33 @@ export default function TransactionsPage() {
     const [transactions, setTransactions] =
         useState<Transaction[]>([]);
 
+    // Stores the transaction search and filter values.
+    const [searchTerm, setSearchTerm] = useState("");
+    const [typeFilter, setTypeFilter] =
+        useState<TransactionTypeFilter>("All");
+    const [categoryFilter, setCategoryFilter] =
+        useState("");
+    const [paymentMethodFilter, setPaymentMethodFilter] =
+        useState("");
+
     // Temporary values used while editing an existing transaction.
     const [editingTransactionId, setEditingTransactionId] =
         useState<number | null>(null);
     const [editedTransactionType, setEditedTransactionType] =
         useState<TransactionType>("Expense");
     const [editedAmount, setEditedAmount] = useState("");
-    const [editedCategoryId, setEditedCategoryId] = useState("");
-    const [editedPaymentMethodId, setEditedPaymentMethodId] =
+    const [editedCategoryId, setEditedCategoryId] =
         useState("");
+    const [
+        editedPaymentMethodId,
+        setEditedPaymentMethodId,
+    ] = useState("");
     const [editedDescription, setEditedDescription] =
         useState("");
-    const [editedTransactionDate, setEditedTransactionDate] =
-        useState("");
+    const [
+        editedTransactionDate,
+        setEditedTransactionDate,
+    ] = useState("");
 
     const [message, setMessage] = useState("");
     const [isSuccess, setIsSuccess] = useState(false);
@@ -114,7 +136,10 @@ export default function TransactionsPage() {
     const loadReferenceData = useCallback(async () => {
         const [
             { data: categoryData, error: categoryError },
-            { data: paymentMethodData, error: paymentMethodError },
+            {
+                data: paymentMethodData,
+                error: paymentMethodError,
+            },
         ] = await Promise.all([
             supabase
                 .from("categories")
@@ -140,14 +165,18 @@ export default function TransactionsPage() {
         }
 
         const loadedCategories = categoryData ?? [];
-        const loadedPaymentMethods = paymentMethodData ?? [];
+        const loadedPaymentMethods =
+            paymentMethodData ?? [];
 
         setCategories(loadedCategories);
         setPaymentMethods(loadedPaymentMethods);
 
         // Select the first available option when the form is empty.
         setCategoryId((currentId) => {
-            if (currentId || loadedCategories.length === 0) {
+            if (
+                currentId ||
+                loadedCategories.length === 0
+            ) {
                 return currentId;
             }
 
@@ -155,7 +184,10 @@ export default function TransactionsPage() {
         });
 
         setPaymentMethodId((currentId) => {
-            if (currentId || loadedPaymentMethods.length === 0) {
+            if (
+                currentId ||
+                loadedPaymentMethods.length === 0
+            ) {
                 return currentId;
             }
 
@@ -177,7 +209,9 @@ export default function TransactionsPage() {
                 category:categories(name),
                 payment_method:payment_methods(name)
             `)
-            .order("transaction_date", { ascending: false })
+            .order("transaction_date", {
+                ascending: false,
+            })
             .order("id", { ascending: false });
 
         if (error) {
@@ -208,6 +242,58 @@ export default function TransactionsPage() {
         };
     }, [showDeleteModal]);
 
+    // Filters transactions based on the selected search options.
+    const filteredTransactions = useMemo(() => {
+        const normalizedSearch =
+            searchTerm.trim().toLowerCase();
+
+        return transactions.filter((transaction) => {
+            const matchesSearch =
+                normalizedSearch === "" ||
+                (transaction.description ?? "")
+                    .toLowerCase()
+                    .includes(normalizedSearch);
+
+            const matchesType =
+                typeFilter === "All" ||
+                (typeFilter === "Income" &&
+                    transaction.amount > 0) ||
+                (typeFilter === "Expense" &&
+                    transaction.amount < 0);
+
+            const matchesCategory =
+                categoryFilter === "" ||
+                transaction.category_id ===
+                Number(categoryFilter);
+
+            const matchesPaymentMethod =
+                paymentMethodFilter === "" ||
+                transaction.payment_method_id ===
+                Number(paymentMethodFilter);
+
+            return (
+                matchesSearch &&
+                matchesType &&
+                matchesCategory &&
+                matchesPaymentMethod
+            );
+        });
+    }, [
+        transactions,
+        searchTerm,
+        typeFilter,
+        categoryFilter,
+        paymentMethodFilter,
+    ]);
+
+    // Clears all transaction search and filter options.
+    function clearFilters() {
+        setSearchTerm("");
+        setTypeFilter("All");
+        setCategoryFilter("");
+        setPaymentMethodFilter("");
+    }
+
     // Validates the form and creates a new transaction.
     async function handleAddTransaction(
         event: FormEvent<HTMLFormElement>
@@ -218,8 +304,13 @@ export default function TransactionsPage() {
 
         const numericAmount = Number(amount);
 
-        if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-            setMessage("Please enter an amount greater than zero.");
+        if (
+            !Number.isFinite(numericAmount) ||
+            numericAmount <= 0
+        ) {
+            setMessage(
+                "Please enter an amount greater than zero."
+            );
             return;
         }
 
@@ -234,7 +325,9 @@ export default function TransactionsPage() {
         }
 
         if (!transactionDate) {
-            setMessage("Please select a transaction date.");
+            setMessage(
+                "Please select a transaction date."
+            );
             return;
         }
 
@@ -244,7 +337,9 @@ export default function TransactionsPage() {
         } = await supabase.auth.getUser();
 
         if (userError || !user) {
-            setMessage("You must be logged in to add a transaction.");
+            setMessage(
+                "You must be logged in to add a transaction."
+            );
             return;
         }
 
@@ -254,16 +349,19 @@ export default function TransactionsPage() {
                 ? -Math.abs(numericAmount)
                 : Math.abs(numericAmount);
 
-        const trimmedDescription = description.trim();
+        const trimmedDescription =
+            description.trim();
 
         const { error } = await supabase
             .from("transactions")
             .insert({
                 user_id: user.id,
                 category_id: Number(categoryId),
-                payment_method_id: Number(paymentMethodId),
+                payment_method_id:
+                    Number(paymentMethodId),
                 amount: signedAmount,
-                description: trimmedDescription || null,
+                description:
+                    trimmedDescription || null,
                 transaction_date: transactionDate,
             });
 
@@ -277,7 +375,9 @@ export default function TransactionsPage() {
         setDescription("");
         setTransactionDate(getTodayDate());
         setIsSuccess(true);
-        setMessage("Transaction created successfully.");
+        setMessage(
+            "Transaction created successfully."
+        );
 
         await loadTransactions();
     }
@@ -299,12 +399,16 @@ export default function TransactionsPage() {
             return;
         }
 
-        if (editingTransactionId === transactionId) {
+        if (
+            editingTransactionId === transactionId
+        ) {
             cancelEditing();
         }
 
         setIsSuccess(true);
-        setMessage("Transaction deleted successfully.");
+        setMessage(
+            "Transaction deleted successfully."
+        );
         setShowDeleteModal(false);
         setTransactionToDelete(null);
 
@@ -318,10 +422,16 @@ export default function TransactionsPage() {
         setMessage("");
         setIsSuccess(false);
 
-        const numericAmount = Number(editedAmount);
+        const numericAmount =
+            Number(editedAmount);
 
-        if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-            setMessage("Please enter an amount greater than zero.");
+        if (
+            !Number.isFinite(numericAmount) ||
+            numericAmount <= 0
+        ) {
+            setMessage(
+                "Please enter an amount greater than zero."
+            );
             return;
         }
 
@@ -331,12 +441,16 @@ export default function TransactionsPage() {
         }
 
         if (!editedPaymentMethodId) {
-            setMessage("Please select a payment method.");
+            setMessage(
+                "Please select a payment method."
+            );
             return;
         }
 
         if (!editedTransactionDate) {
-            setMessage("Please select a transaction date.");
+            setMessage(
+                "Please select a transaction date."
+            );
             return;
         }
 
@@ -346,16 +460,21 @@ export default function TransactionsPage() {
                 : Math.abs(numericAmount);
 
         // Remove extra spaces entered by the user.
-        const trimmedDescription = editedDescription.trim();
+        const trimmedDescription =
+            editedDescription.trim();
 
         const { error } = await supabase
             .from("transactions")
             .update({
-                category_id: Number(editedCategoryId),
-                payment_method_id: Number(editedPaymentMethodId),
+                category_id:
+                    Number(editedCategoryId),
+                payment_method_id:
+                    Number(editedPaymentMethodId),
                 amount: signedAmount,
-                description: trimmedDescription || null,
-                transaction_date: editedTransactionDate,
+                description:
+                    trimmedDescription || null,
+                transaction_date:
+                    editedTransactionDate,
             })
             .eq("id", transactionId);
 
@@ -366,7 +485,9 @@ export default function TransactionsPage() {
 
         cancelEditing();
         setIsSuccess(true);
-        setMessage("Transaction updated successfully.");
+        setMessage(
+            "Transaction updated successfully."
+        );
 
         await loadTransactions();
     }
@@ -375,17 +496,29 @@ export default function TransactionsPage() {
     function startEditingTransaction(
         transaction: Transaction
     ) {
-        setEditingTransactionId(transaction.id);
-        setEditedTransactionType(
-            transaction.amount < 0 ? "Expense" : "Income"
+        setEditingTransactionId(
+            transaction.id
         );
-        setEditedAmount(String(Math.abs(transaction.amount)));
-        setEditedCategoryId(String(transaction.category_id));
+        setEditedTransactionType(
+            transaction.amount < 0
+                ? "Expense"
+                : "Income"
+        );
+        setEditedAmount(
+            String(Math.abs(transaction.amount))
+        );
+        setEditedCategoryId(
+            String(transaction.category_id)
+        );
         setEditedPaymentMethodId(
             String(transaction.payment_method_id)
         );
-        setEditedDescription(transaction.description ?? "");
-        setEditedTransactionDate(transaction.transaction_date);
+        setEditedDescription(
+            transaction.description ?? ""
+        );
+        setEditedTransactionDate(
+            transaction.transaction_date
+        );
         setMessage("");
     }
 
@@ -403,7 +536,14 @@ export default function TransactionsPage() {
 
     // Enable the Add Transaction button only when required data is available.
     const formIsReady =
-        categories.length > 0 && paymentMethods.length > 0;
+        categories.length > 0 &&
+        paymentMethods.length > 0;
+
+    const filtersAreActive =
+        searchTerm.trim() !== "" ||
+        typeFilter !== "All" ||
+        categoryFilter !== "" ||
+        paymentMethodFilter !== "";
 
     return (
         <>
@@ -413,42 +553,74 @@ export default function TransactionsPage() {
                 <div className={styles.container}>
                     <header className={styles.header}>
                         <h1>Transactions</h1>
+
                         <p>
-                            Create, edit, and manage your income
-                            and expenses.
+                            Create, search, filter, edit,
+                            and manage your income and
+                            expenses.
                         </p>
                     </header>
 
-                    <section className={styles.formCard}>
-                        <form onSubmit={handleAddTransaction}>
-                            <div className={styles.formGrid}>
-                                <div className={styles.formGroup}>
-                                    <label htmlFor="transactionType">
+                    <section
+                        className={styles.formCard}
+                    >
+                        <form
+                            onSubmit={
+                                handleAddTransaction
+                            }
+                        >
+                            <div
+                                className={
+                                    styles.formGrid
+                                }
+                            >
+                                <div
+                                    className={
+                                        styles.formGroup
+                                    }
+                                >
+                                    <label
+                                        htmlFor="transactionType"
+                                    >
                                         Transaction Type
                                     </label>
 
                                     <select
                                         id="transactionType"
-                                        value={transactionType}
-                                        onChange={(event) => {
+                                        value={
+                                            transactionType
+                                        }
+                                        onChange={(
+                                            event
+                                        ) => {
                                             setTransactionType(
-                                                event.target
+                                                event
+                                                    .target
                                                     .value as TransactionType
                                             );
-                                            setMessage("");
+                                            setMessage(
+                                                ""
+                                            );
                                         }}
                                     >
                                         <option value="Expense">
                                             Expense
                                         </option>
+
                                         <option value="Income">
                                             Income
                                         </option>
                                     </select>
                                 </div>
 
-                                <div className={styles.formGroup}>
-                                    <label htmlFor="amount">
+                                <div
+                                    className={
+                                        styles.formGroup
+                                    }
+                                >
+                                    <label
+                                        htmlFor="amount"
+                                    >
                                         Amount
                                     </label>
 
@@ -458,38 +630,61 @@ export default function TransactionsPage() {
                                         min="0.01"
                                         step="0.01"
                                         value={amount}
-                                        onChange={(event) => {
+                                        onChange={(
+                                            event
+                                        ) => {
                                             setAmount(
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
                                             );
-                                            setMessage("");
+                                            setMessage(
+                                                ""
+                                            );
                                         }}
                                         required
                                     />
                                 </div>
 
-                                <div className={styles.formGroup}>
-                                    <label htmlFor="category">
+                                <div
+                                    className={
+                                        styles.formGroup
+                                    }
+                                >
+                                    <label
+                                        htmlFor="category"
+                                    >
                                         Category
                                     </label>
 
                                     <select
                                         id="category"
-                                        value={categoryId}
-                                        onChange={(event) => {
+                                        value={
+                                            categoryId
+                                        }
+                                        onChange={(
+                                            event
+                                        ) => {
                                             setCategoryId(
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
                                             );
-                                            setMessage("");
+                                            setMessage(
+                                                ""
+                                            );
                                         }}
                                         required
                                     >
                                         <option value="">
-                                            Select a category
+                                            Select a
+                                            category
                                         </option>
 
                                         {categories.map(
-                                            (category) => (
+                                            (
+                                                category
+                                            ) => (
                                                 <option
                                                     key={
                                                         category.id
@@ -507,28 +702,46 @@ export default function TransactionsPage() {
                                     </select>
                                 </div>
 
-                                <div className={styles.formGroup}>
-                                    <label htmlFor="paymentMethod">
+                                <div
+                                    className={
+                                        styles.formGroup
+                                    }
+                                >
+                                    <label
+                                        htmlFor="paymentMethod"
+                                    >
                                         Payment Method
                                     </label>
 
                                     <select
                                         id="paymentMethod"
-                                        value={paymentMethodId}
-                                        onChange={(event) => {
+                                        value={
+                                            paymentMethodId
+                                        }
+                                        onChange={(
+                                            event
+                                        ) => {
                                             setPaymentMethodId(
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
                                             );
-                                            setMessage("");
+                                            setMessage(
+                                                ""
+                                            );
                                         }}
                                         required
                                     >
                                         <option value="">
-                                            Select a payment method
+                                            Select a
+                                            payment
+                                            method
                                         </option>
 
                                         {paymentMethods.map(
-                                            (paymentMethod) => (
+                                            (
+                                                paymentMethod
+                                            ) => (
                                                 <option
                                                     key={
                                                         paymentMethod.id
@@ -549,49 +762,82 @@ export default function TransactionsPage() {
                                 <div
                                     className={`${styles.formGroup} ${styles.fullWidth}`}
                                 >
-                                    <label htmlFor="description">
-                                        Description (Optional)
+                                    <label
+                                        htmlFor="description"
+                                    >
+                                        Description
+                                        (Optional)
                                     </label>
 
                                     <input
                                         id="description"
                                         type="text"
-                                        value={description}
-                                        onChange={(event) => {
+                                        value={
+                                            description
+                                        }
+                                        onChange={(
+                                            event
+                                        ) => {
                                             setDescription(
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
                                             );
-                                            setMessage("");
+                                            setMessage(
+                                                ""
+                                            );
                                         }}
                                         placeholder="Enter a description"
                                     />
                                 </div>
 
-                                <div className={styles.formGroup}>
-                                    <label htmlFor="transactionDate">
+                                <div
+                                    className={
+                                        styles.formGroup
+                                    }
+                                >
+                                    <label
+                                        htmlFor="transactionDate"
+                                    >
                                         Transaction Date
                                     </label>
 
                                     <input
                                         id="transactionDate"
                                         type="date"
-                                        value={transactionDate}
-                                        onChange={(event) => {
+                                        value={
+                                            transactionDate
+                                        }
+                                        onChange={(
+                                            event
+                                        ) => {
                                             setTransactionDate(
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
                                             );
-                                            setMessage("");
+                                            setMessage(
+                                                ""
+                                            );
                                         }}
                                         required
                                     />
                                 </div>
                             </div>
 
-                            <div className={styles.formActions}>
+                            <div
+                                className={
+                                    styles.formActions
+                                }
+                            >
                                 <button
                                     type="submit"
-                                    disabled={!formIsReady}
-                                    className={styles.primaryButton}
+                                    disabled={
+                                        !formIsReady
+                                    }
+                                    className={
+                                        styles.primaryButton
+                                    }
                                 >
                                     Add Transaction
                                 </button>
@@ -599,9 +845,14 @@ export default function TransactionsPage() {
                         </form>
 
                         {!formIsReady && (
-                            <p className={styles.warningMessage}>
-                                Create at least one category and one
-                                payment method before adding a
+                            <p
+                                className={
+                                    styles.warningMessage
+                                }
+                            >
+                                Create at least one
+                                category and one payment
+                                method before adding a
                                 transaction.
                             </p>
                         )}
@@ -619,21 +870,283 @@ export default function TransactionsPage() {
                         )}
                     </section>
 
-                    <section className={styles.transactionsCard}>
-                        <div className={styles.sectionHeader}>
-                            <h2>Your Transactions</h2>
+                    {/* Search and filter transaction history. */}
+                    <section
+                        className={
+                            styles.filtersCard
+                        }
+                    >
+                        <div
+                            className={
+                                styles.sectionHeader
+                            }
+                        >
+                            <h2>
+                                Search & Filter
+                            </h2>
+
                             <p>
-                                Review and manage your complete
-                                transaction history.
+                                Narrow your transaction
+                                history using one or more
+                                filters.
                             </p>
                         </div>
 
-                        {transactions.length === 0 ? (
-                            <p className={styles.emptyMessage}>
+                        <div
+                            className={
+                                styles.filtersGrid
+                            }
+                        >
+                            <div
+                                className={
+                                    styles.filterGroup
+                                }
+                            >
+                                <label
+                                    htmlFor="transactionSearch"
+                                >
+                                    Search
+                                </label>
+
+                                <input
+                                    id="transactionSearch"
+                                    type="search"
+                                    value={
+                                        searchTerm
+                                    }
+                                    onChange={(
+                                        event
+                                    ) =>
+                                        setSearchTerm(
+                                            event.target
+                                                .value
+                                        )
+                                    }
+                                    placeholder="Search description..."
+                                />
+                            </div>
+
+                            <div
+                                className={
+                                    styles.filterGroup
+                                }
+                            >
+                                <label
+                                    htmlFor="typeFilter"
+                                >
+                                    Type
+                                </label>
+
+                                <select
+                                    id="typeFilter"
+                                    value={
+                                        typeFilter
+                                    }
+                                    onChange={(
+                                        event
+                                    ) =>
+                                        setTypeFilter(
+                                            event.target
+                                                .value as TransactionTypeFilter
+                                        )
+                                    }
+                                >
+                                    <option value="All">
+                                        All Types
+                                    </option>
+                                    <option value="Expense">
+                                        Expenses
+                                    </option>
+                                    <option value="Income">
+                                        Income
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div
+                                className={
+                                    styles.filterGroup
+                                }
+                            >
+                                <label
+                                    htmlFor="categoryFilter"
+                                >
+                                    Category
+                                </label>
+
+                                <select
+                                    id="categoryFilter"
+                                    value={
+                                        categoryFilter
+                                    }
+                                    onChange={(
+                                        event
+                                    ) =>
+                                        setCategoryFilter(
+                                            event.target
+                                                .value
+                                        )
+                                    }
+                                >
+                                    <option value="">
+                                        All Categories
+                                    </option>
+
+                                    {categories.map(
+                                        (category) => (
+                                            <option
+                                                key={
+                                                    category.id
+                                                }
+                                                value={
+                                                    category.id
+                                                }
+                                            >
+                                                {
+                                                    category.name
+                                                }
+                                            </option>
+                                        )
+                                    )}
+                                </select>
+                            </div>
+
+                            <div
+                                className={
+                                    styles.filterGroup
+                                }
+                            >
+                                <label
+                                    htmlFor="paymentMethodFilter"
+                                >
+                                    Payment Method
+                                </label>
+
+                                <select
+                                    id="paymentMethodFilter"
+                                    value={
+                                        paymentMethodFilter
+                                    }
+                                    onChange={(
+                                        event
+                                    ) =>
+                                        setPaymentMethodFilter(
+                                            event.target
+                                                .value
+                                        )
+                                    }
+                                >
+                                    <option value="">
+                                        All Payment
+                                        Methods
+                                    </option>
+
+                                    {paymentMethods.map(
+                                        (
+                                            paymentMethod
+                                        ) => (
+                                            <option
+                                                key={
+                                                    paymentMethod.id
+                                                }
+                                                value={
+                                                    paymentMethod.id
+                                                }
+                                            >
+                                                {
+                                                    paymentMethod.name
+                                                }
+                                            </option>
+                                        )
+                                    )}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div
+                            className={
+                                styles.filterActions
+                            }
+                        >
+                            <span
+                                className={
+                                    styles.resultCount
+                                }
+                            >
+                                Showing{" "}
+                                {
+                                    filteredTransactions.length
+                                }{" "}
+                                of{" "}
+                                {
+                                    transactions.length
+                                }{" "}
+                                transactions
+                            </span>
+
+                            <button
+                                type="button"
+                                onClick={
+                                    clearFilters
+                                }
+                                disabled={
+                                    !filtersAreActive
+                                }
+                                className={
+                                    styles.clearButton
+                                }
+                            >
+                                Clear Filters
+                            </button>
+                        </div>
+                    </section>
+
+                    <section
+                        className={
+                            styles.transactionsCard
+                        }
+                    >
+                        <div
+                            className={
+                                styles.sectionHeader
+                            }
+                        >
+                            <h2>
+                                Your Transactions
+                            </h2>
+
+                            <p>
+                                Review and manage your
+                                complete transaction
+                                history.
+                            </p>
+                        </div>
+
+                        {transactions.length ===
+                            0 ? (
+                            <p
+                                className={
+                                    styles.emptyMessage
+                                }
+                            >
                                 No transactions yet.
                             </p>
+                        ) : filteredTransactions.length ===
+                            0 ? (
+                            <p
+                                className={
+                                    styles.emptyMessage
+                                }
+                            >
+                                No transactions match
+                                your current filters.
+                            </p>
                         ) : (
-                            <div className={styles.tableWrapper}>
+                            <div
+                                className={
+                                    styles.tableWrapper
+                                }
+                            >
                                 <table
                                     className={
                                         styles.transactionsTable
@@ -641,19 +1154,36 @@ export default function TransactionsPage() {
                                 >
                                     <thead>
                                         <tr>
-                                            <th>Date</th>
-                                            <th>Type</th>
-                                            <th>Category</th>
-                                            <th>Payment Method</th>
-                                            <th>Description</th>
-                                            <th>Amount</th>
-                                            <th>Actions</th>
+                                            <th>
+                                                Date
+                                            </th>
+                                            <th>
+                                                Type
+                                            </th>
+                                            <th>
+                                                Category
+                                            </th>
+                                            <th>
+                                                Payment
+                                                Method
+                                            </th>
+                                            <th>
+                                                Description
+                                            </th>
+                                            <th>
+                                                Amount
+                                            </th>
+                                            <th>
+                                                Actions
+                                            </th>
                                         </tr>
                                     </thead>
 
                                     <tbody>
-                                        {transactions.map(
-                                            (transaction) => (
+                                        {filteredTransactions.map(
+                                            (
+                                                transaction
+                                            ) => (
                                                 <tr
                                                     key={
                                                         transaction.id
@@ -704,6 +1234,7 @@ export default function TransactionsPage() {
                                                                     <option value="Expense">
                                                                         Expense
                                                                     </option>
+
                                                                     <option value="Income">
                                                                         Income
                                                                     </option>
@@ -956,22 +1487,30 @@ export default function TransactionsPage() {
 
                     {/* Confirmation dialog displayed before deleting a transaction. */}
                     <ConfirmationModal
-                        isOpen={showDeleteModal}
+                        isOpen={
+                            showDeleteModal
+                        }
                         title="Delete Transaction"
                         message={`Are you sure you want to delete this transaction?
 This action cannot be undone.`}
                         confirmText="Delete"
                         cancelText="Cancel"
                         onConfirm={() => {
-                            if (transactionToDelete) {
+                            if (
+                                transactionToDelete
+                            ) {
                                 void handleDeleteTransaction(
                                     transactionToDelete.id
                                 );
                             }
                         }}
                         onCancel={() => {
-                            setShowDeleteModal(false);
-                            setTransactionToDelete(null);
+                            setShowDeleteModal(
+                                false
+                            );
+                            setTransactionToDelete(
+                                null
+                            );
                         }}
                     />
                 </div>

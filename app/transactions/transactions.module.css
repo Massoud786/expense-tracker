@@ -1,8 +1,9 @@
 /* ------------------------------------------------------------
    Transactions Page Styles
 
-   Styles the transaction form, transaction table, action
-   buttons, status messages, and responsive page layout.
+   Styles the transaction form, search filters, transaction
+   table, action buttons, status messages, and responsive
+   page layout.
 ------------------------------------------------------------ */
 
 .page {
@@ -32,6 +33,10 @@
     color: #6b7280;
 }
 
+/* ------------------------------------------------------------
+   Add Transaction Form
+------------------------------------------------------------ */
+
 .formCard {
     margin-bottom: 28px;
     padding: 24px;
@@ -53,9 +58,9 @@
 }
 
 .formGroup label {
+    color: #374151;
     font-size: 0.9rem;
     font-weight: 600;
-    color: #374151;
 }
 
 .formGroup input,
@@ -110,6 +115,10 @@
     opacity: 0.6;
 }
 
+/* ------------------------------------------------------------
+   Messages
+------------------------------------------------------------ */
+
 .successMessage,
 .errorMessage,
 .warningMessage {
@@ -132,6 +141,100 @@
     background-color: #fef3c7;
     color: #92400e;
 }
+
+/* ------------------------------------------------------------
+   Search & Filter Card
+------------------------------------------------------------ */
+
+.filtersCard {
+    margin-bottom: 28px;
+    padding: 24px;
+    border-radius: 12px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.filtersGrid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.filterGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.filterGroup label {
+    color: #374151;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.filterGroup input,
+.filterGroup select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background-color: #ffffff;
+    color: #111827;
+    font-size: 0.9rem;
+    outline: none;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.filterGroup input:focus,
+.filterGroup select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.filterGroup input::placeholder {
+    color: #9ca3af;
+}
+
+.filterActions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.resultCount {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.clearButton {
+    padding: 9px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    background-color: #ffffff;
+    color: #374151;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        opacity 0.2s ease;
+}
+
+.clearButton:hover:not(:disabled) {
+    background-color: #f3f4f6;
+}
+
+.clearButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+/* ------------------------------------------------------------
+   Transactions Table
+------------------------------------------------------------ */
 
 .transactionsCard {
     padding: 24px;
@@ -176,9 +279,9 @@
 }
 
 .transactionsTable th {
+    color: #6b7280;
     font-size: 0.875rem;
     font-weight: 600;
-    color: #6b7280;
 }
 
 .transactionsTable tbody tr:nth-child(even) {
@@ -218,6 +321,10 @@
 .actionsCell {
     white-space: nowrap;
 }
+
+/* ------------------------------------------------------------
+   Edit Controls
+------------------------------------------------------------ */
 
 .editInput,
 .editSelect {
@@ -262,6 +369,16 @@
     opacity: 0.85;
 }
 
+/* ------------------------------------------------------------
+   Responsive Layout
+------------------------------------------------------------ */
+
+@media (max-width: 1000px) {
+    .filtersGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 @media (max-width: 768px) {
     .page {
         padding: 24px 16px;
@@ -271,7 +388,8 @@
         font-size: 1.6rem;
     }
 
-    .formGrid {
+    .formGrid,
+    .filtersGrid {
         grid-template-columns: 1fr;
     }
 
@@ -280,8 +398,18 @@
     }
 
     .formCard,
+    .filtersCard,
     .transactionsCard {
         padding: 20px;
+    }
+
+    .filterActions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .clearButton {
+        width: 100%;
     }
 
     .transactionsTable th,
