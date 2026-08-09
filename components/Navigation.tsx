@@ -21,6 +21,7 @@ const navigationLinks = [
     { href: "/bills", label: "Bills" },
     { href: "/budgets", label: "Budgets" },
     { href: "/reports", label: "Reports" },
+    { href: "/insights", label: "Insights" },
 ];
 
 export default function Navigation() {
