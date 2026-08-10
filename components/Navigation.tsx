@@ -5,6 +5,9 @@
 //
 // Provides links to the application's main pages and allows
 // the authenticated user to log out.
+//
+// On smaller screens, navigation links are displayed inside
+// a hamburger menu.
 // ------------------------------------------------------------
 
 import Link from "next/link";
@@ -30,6 +33,7 @@ export default function Navigation() {
 
     const [message, setMessage] = useState("");
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     // Signs the user out and redirects them to the login page.
     async function handleLogout() {
@@ -48,28 +52,58 @@ export default function Navigation() {
         router.refresh();
     }
 
+    // Opens or closes the mobile navigation menu.
+    function handleMenuToggle() {
+        setIsMenuOpen((currentValue) => !currentValue);
+    }
+
+    // Closes the mobile menu after the user selects a page.
+    function handleNavigationClick() {
+        setIsMenuOpen(false);
+    }
+
     return (
         <header className={styles.navigation}>
             <div className={styles.container}>
                 <Link
                     href="/dashboard"
                     className={styles.brand}
+                    onClick={handleNavigationClick}
                 >
                     Expense Tracker
                 </Link>
 
+                <button
+                    type="button"
+                    className={styles.menuButton}
+                    onClick={handleMenuToggle}
+                    aria-label={
+                        isMenuOpen
+                            ? "Close navigation menu"
+                            : "Open navigation menu"
+                    }
+                    aria-expanded={isMenuOpen}
+                    aria-controls="main-navigation"
+                >
+                    <span className={styles.menuIcon} aria-hidden="true">
+                        {isMenuOpen ? "✕" : "☰"}
+                    </span>
+                </button>
+
                 <nav
-                    className={styles.links}
+                    id="main-navigation"
+                    className={`${styles.links} ${isMenuOpen ? styles.menuOpen : ""
+                        }`}
                     aria-label="Main navigation"
                 >
                     {navigationLinks.map((link) => {
-                        const isActive =
-                            pathname === link.href;
+                        const isActive = pathname === link.href;
 
                         return (
                             <Link
                                 key={link.href}
                                 href={link.href}
+                                onClick={handleNavigationClick}
                                 className={
                                     isActive
                                         ? `${styles.link} ${styles.activeLink}`
