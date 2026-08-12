@@ -1,0 +1,35 @@
+/* ------------------------------------------------------------
+Footer Styles
+
+Styles the application's reusable footer.
+------------------------------------------------------------ */
+
+.footer {
+    width: 100%;
+    border-top: 1px solid #e5e7eb;
+    background-color: #ffffff;
+}
+
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 22px 20px;
+}
+
+.container p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+@media (max-width: 600px) {
+    .container {
+        padding: 18px 16px;
+    }
+
+    .container p {
+        font-size: 0.85rem;
+    }
+}

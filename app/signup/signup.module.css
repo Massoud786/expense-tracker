@@ -1,9 +1,9 @@
 /* ------------------------------------------------------------
-   Sign Up Page Styles
+Sign Up Page Styles
 
-   Styles the authentication card, form fields, password
-   controls, live validation messages, branding, and
-   responsive layout.
+Styles the authentication card, form fields, password
+controls, live validation messages, branding, and
+responsive layout.
 ------------------------------------------------------------ */
 
 .page {
@@ -20,11 +20,14 @@
 }
 
 /* ------------------------------------------------------------
-   Branding
+Branding
 ------------------------------------------------------------ */
 
 .brand {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
     margin-bottom: 32px;
     color: #1f2937;
     font-size: 1.4rem;
@@ -38,8 +41,15 @@
     color: #2563eb;
 }
 
+.logo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
 /* ------------------------------------------------------------
-   Authentication Card
+Authentication Card
 ------------------------------------------------------------ */
 
 .authCard {
@@ -67,7 +77,7 @@
 }
 
 /* ------------------------------------------------------------
-   Form
+Form
 ------------------------------------------------------------ */
 
 .form {
@@ -111,7 +121,7 @@
 }
 
 /* ------------------------------------------------------------
-   Password Fields
+Password Fields
 ------------------------------------------------------------ */
 
 .passwordWrapper {
@@ -147,7 +157,7 @@
 }
 
 /* ------------------------------------------------------------
-   Password Match Feedback
+Password Match Feedback
 ------------------------------------------------------------ */
 
 .passwordMatch {
@@ -165,7 +175,7 @@
 }
 
 /* ------------------------------------------------------------
-   Primary Button
+Primary Button
 ------------------------------------------------------------ */
 
 .primaryButton {
@@ -195,7 +205,7 @@
 }
 
 /* ------------------------------------------------------------
-   Messages
+Messages
 ------------------------------------------------------------ */
 
 .successMessage {
@@ -217,7 +227,7 @@
 }
 
 /* ------------------------------------------------------------
-   Footer
+Footer
 ------------------------------------------------------------ */
 
 .footerText {
@@ -237,7 +247,7 @@
 }
 
 /* ------------------------------------------------------------
-   Responsive Layout
+Responsive Layout
 ------------------------------------------------------------ */
 
 @media (max-width: 600px) {
@@ -251,6 +261,12 @@
 
     .brand {
         margin-bottom: 24px;
+        font-size: 1.2rem;
+    }
+
+    .logo {
+        width: 40px;
+        height: 40px;
     }
 
     .authCard {

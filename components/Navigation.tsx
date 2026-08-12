@@ -10,6 +10,7 @@
 // a hamburger menu.
 // ------------------------------------------------------------
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -70,7 +71,16 @@ export default function Navigation() {
                     className={styles.brand}
                     onClick={handleNavigationClick}
                 >
-                    Expense Tracker
+                    <Image
+                        src="/images/logo-image.png"
+                        alt="4D Expense Tracker logo"
+                        width={42}
+                        height={42}
+                        className={styles.logo}
+                        priority
+                    />
+
+                    <span>4D Expense Tracker</span>
                 </Link>
 
                 <button
@@ -85,7 +95,10 @@ export default function Navigation() {
                     aria-expanded={isMenuOpen}
                     aria-controls="main-navigation"
                 >
-                    <span className={styles.menuIcon} aria-hidden="true">
+                    <span
+                        className={styles.menuIcon}
+                        aria-hidden="true"
+                    >
                         {isMenuOpen ? "✕" : "☰"}
                     </span>
                 </button>

@@ -11,6 +11,7 @@
 // ------------------------------------------------------------
 
 import { FormEvent, useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -110,7 +111,16 @@ export default function LoginPage() {
     <main className={styles.page}>
       <div className={styles.container}>
         <Link href="/" className={styles.brand}>
-          Expense Tracker
+          <Image
+            src="/images/logo-image.png"
+            alt="4D Expense Tracker logo"
+            width={48}
+            height={48}
+            className={styles.logo}
+            priority
+          />
+
+          <span>4D Expense Tracker</span>
         </Link>
 
         <section className={styles.authCard}>
