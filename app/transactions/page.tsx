@@ -5,6 +5,8 @@
 //
 // Allows authenticated users to:
 // - Create transactions
+// - Optionally upload receipt images
+// - View private receipt images
 // - View their transactions
 // - Search transactions
 // - Filter transactions
@@ -51,6 +53,7 @@ type Transaction = {
     transaction_date: string;
     category_id: number;
     payment_method_id: number;
+    receipt_path: string | null;
     category: {
         name: string;
     } | null;
@@ -58,6 +61,14 @@ type Transaction = {
         name: string;
     } | null;
 };
+
+const MAX_RECEIPT_SIZE = 5 * 1024 * 1024;
+
+const ALLOWED_RECEIPT_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+];
 
 // Returns today's date in YYYY-MM-DD format.
 function getTodayDate() {
@@ -74,7 +85,9 @@ function formatCurrency(amount: number) {
 
 // Formats the transaction date for display.
 function formatDate(date: string) {
-    return new Date(`${date}T00:00:00`).toLocaleDateString();
+    return new Date(
+        `${date}T00:00:00`
+    ).toLocaleDateString();
 }
 
 export default function TransactionsPage() {
@@ -83,210 +96,312 @@ export default function TransactionsPage() {
 
     const [amount, setAmount] = useState("");
     const [categoryId, setCategoryId] = useState("");
-    const [paymentMethodId, setPaymentMethodId] = useState("");
-    const [description, setDescription] = useState("");
+    const [paymentMethodId, setPaymentMethodId] =
+        useState("");
+    const [description, setDescription] =
+        useState("");
     const [transactionDate, setTransactionDate] =
         useState(getTodayDate());
 
-    const [categories, setCategories] = useState<Category[]>([]);
+    // Stores the optional receipt selected by the user.
+    const [receiptFile, setReceiptFile] =
+        useState<File | null>(null);
+
+    // Changing this value resets the browser file input.
+    const [receiptInputKey, setReceiptInputKey] =
+        useState(0);
+
+    const [isSubmitting, setIsSubmitting] =
+        useState(false);
+
+    const [categories, setCategories] =
+        useState<Category[]>([]);
+
     const [paymentMethods, setPaymentMethods] =
         useState<PaymentMethod[]>([]);
 
     const [transactions, setTransactions] =
         useState<Transaction[]>([]);
 
-    // Stores the transaction search and filter values.
-    const [searchTerm, setSearchTerm] = useState("");
-    const [typeFilter, setTypeFilter] =
-        useState<TransactionTypeFilter>("All");
-    const [categoryFilter, setCategoryFilter] =
-        useState("");
-    const [paymentMethodFilter, setPaymentMethodFilter] =
+    // Transaction search and filter values.
+    const [searchTerm, setSearchTerm] =
         useState("");
 
-    // Temporary values used while editing an existing transaction.
-    const [editingTransactionId, setEditingTransactionId] =
-        useState<number | null>(null);
-    const [editedTransactionType, setEditedTransactionType] =
-        useState<TransactionType>("Expense");
-    const [editedAmount, setEditedAmount] = useState("");
-    const [editedCategoryId, setEditedCategoryId] =
+    const [typeFilter, setTypeFilter] =
+        useState<TransactionTypeFilter>("All");
+
+    const [categoryFilter, setCategoryFilter] =
         useState("");
+
+    const [
+        paymentMethodFilter,
+        setPaymentMethodFilter,
+    ] = useState("");
+
+    // Temporary values used while editing.
+    const [
+        editingTransactionId,
+        setEditingTransactionId,
+    ] = useState<number | null>(null);
+
+    const [
+        editedTransactionType,
+        setEditedTransactionType,
+    ] = useState<TransactionType>("Expense");
+
+    const [editedAmount, setEditedAmount] =
+        useState("");
+
+    const [
+        editedCategoryId,
+        setEditedCategoryId,
+    ] = useState("");
+
     const [
         editedPaymentMethodId,
         setEditedPaymentMethodId,
     ] = useState("");
-    const [editedDescription, setEditedDescription] =
-        useState("");
+
+    const [
+        editedDescription,
+        setEditedDescription,
+    ] = useState("");
+
     const [
         editedTransactionDate,
         setEditedTransactionDate,
     ] = useState("");
 
     const [message, setMessage] = useState("");
-    const [isSuccess, setIsSuccess] = useState(false);
+    const [isSuccess, setIsSuccess] =
+        useState(false);
 
-    // Controls the delete confirmation modal.
+    // Delete confirmation modal.
     const [showDeleteModal, setShowDeleteModal] =
         useState(false);
-    const [transactionToDelete, setTransactionToDelete] =
-        useState<Transaction | null>(null);
 
-    // Load the user's categories and payment methods for the form.
-    const loadReferenceData = useCallback(async () => {
-        const [
-            { data: categoryData, error: categoryError },
-            {
-                data: paymentMethodData,
-                error: paymentMethodError,
-            },
-        ] = await Promise.all([
-            supabase
-                .from("categories")
-                .select("id, name")
-                .order("name", { ascending: true }),
+    const [
+        transactionToDelete,
+        setTransactionToDelete,
+    ] = useState<Transaction | null>(null);
 
-            supabase
-                .from("payment_methods")
-                .select("id, name")
-                .order("name", { ascending: true }),
-        ]);
+    // ------------------------------------------------------------
+    // Load Categories and Payment Methods
+    // ------------------------------------------------------------
 
-        if (categoryError) {
-            setIsSuccess(false);
-            setMessage(categoryError.message);
-            return;
-        }
+    const loadReferenceData =
+        useCallback(async () => {
+            const [
+                {
+                    data: categoryData,
+                    error: categoryError,
+                },
+                {
+                    data: paymentMethodData,
+                    error: paymentMethodError,
+                },
+            ] = await Promise.all([
+                supabase
+                    .from("categories")
+                    .select("id, name")
+                    .order("name", {
+                        ascending: true,
+                    }),
 
-        if (paymentMethodError) {
-            setIsSuccess(false);
-            setMessage(paymentMethodError.message);
-            return;
-        }
+                supabase
+                    .from("payment_methods")
+                    .select("id, name")
+                    .order("name", {
+                        ascending: true,
+                    }),
+            ]);
 
-        const loadedCategories = categoryData ?? [];
-        const loadedPaymentMethods =
-            paymentMethodData ?? [];
-
-        setCategories(loadedCategories);
-        setPaymentMethods(loadedPaymentMethods);
-
-        // Select the first available option when the form is empty.
-        setCategoryId((currentId) => {
-            if (
-                currentId ||
-                loadedCategories.length === 0
-            ) {
-                return currentId;
+            if (categoryError) {
+                setIsSuccess(false);
+                setMessage(
+                    categoryError.message
+                );
+                return;
             }
 
-            return String(loadedCategories[0].id);
-        });
-
-        setPaymentMethodId((currentId) => {
-            if (
-                currentId ||
-                loadedPaymentMethods.length === 0
-            ) {
-                return currentId;
+            if (paymentMethodError) {
+                setIsSuccess(false);
+                setMessage(
+                    paymentMethodError.message
+                );
+                return;
             }
 
-            return String(loadedPaymentMethods[0].id);
-        });
-    }, []);
+            const loadedCategories =
+                categoryData ?? [];
 
-    // Load transactions with their category and payment-method names.
-    const loadTransactions = useCallback(async () => {
-        const { data, error } = await supabase
-            .from("transactions")
-            .select(`
-                id,
-                amount,
-                description,
-                transaction_date,
-                category_id,
-                payment_method_id,
-                category:categories(name),
-                payment_method:payment_methods(name)
-            `)
-            .order("transaction_date", {
-                ascending: false,
-            })
-            .order("id", { ascending: false });
+            const loadedPaymentMethods =
+                paymentMethodData ?? [];
 
-        if (error) {
-            setIsSuccess(false);
-            setMessage(error.message);
-            return;
-        }
+            setCategories(loadedCategories);
 
-        setTransactions(
-            (data ?? []) as unknown as Transaction[]
-        );
-    }, []);
+            setPaymentMethods(
+                loadedPaymentMethods
+            );
 
-    // Load everything needed by the page when it first opens.
+            setCategoryId((currentId) => {
+                if (
+                    currentId ||
+                    loadedCategories.length === 0
+                ) {
+                    return currentId;
+                }
+
+                return String(
+                    loadedCategories[0].id
+                );
+            });
+
+            setPaymentMethodId(
+                (currentId) => {
+                    if (
+                        currentId ||
+                        loadedPaymentMethods.length ===
+                        0
+                    ) {
+                        return currentId;
+                    }
+
+                    return String(
+                        loadedPaymentMethods[0].id
+                    );
+                }
+            );
+        }, []);
+
+    // ------------------------------------------------------------
+    // Load Transactions
+    // ------------------------------------------------------------
+
+    const loadTransactions =
+        useCallback(async () => {
+            const { data, error } =
+                await supabase
+                    .from("transactions")
+                    .select(`
+                        id,
+                        amount,
+                        description,
+                        transaction_date,
+                        category_id,
+                        payment_method_id,
+                        receipt_path,
+                        category:categories(name),
+                        payment_method:payment_methods(name)
+                    `)
+                    .order("transaction_date", {
+                        ascending: false,
+                    })
+                    .order("id", {
+                        ascending: false,
+                    });
+
+            if (error) {
+                setIsSuccess(false);
+                setMessage(error.message);
+                return;
+            }
+
+            setTransactions(
+                (data ??
+                    []) as unknown as Transaction[]
+            );
+        }, []);
+
     useEffect(() => {
         void loadReferenceData();
         void loadTransactions();
-    }, [loadReferenceData, loadTransactions]);
+    }, [
+        loadReferenceData,
+        loadTransactions,
+    ]);
 
-    // Prevent page scrolling while the confirmation modal is open.
+    // Prevent background page scrolling while modal is open.
     useEffect(() => {
-        document.body.style.overflow = showDeleteModal
-            ? "hidden"
-            : "auto";
+        document.body.style.overflow =
+            showDeleteModal
+                ? "hidden"
+                : "auto";
 
         return () => {
-            document.body.style.overflow = "auto";
+            document.body.style.overflow =
+                "auto";
         };
     }, [showDeleteModal]);
 
-    // Filters transactions based on the selected search options.
-    const filteredTransactions = useMemo(() => {
-        const normalizedSearch =
-            searchTerm.trim().toLowerCase();
+    // ------------------------------------------------------------
+    // Filtering
+    // ------------------------------------------------------------
 
-        return transactions.filter((transaction) => {
-            const matchesSearch =
-                normalizedSearch === "" ||
-                (transaction.description ?? "")
-                    .toLowerCase()
-                    .includes(normalizedSearch);
+    const filteredTransactions =
+        useMemo(() => {
+            const normalizedSearch =
+                searchTerm
+                    .trim()
+                    .toLowerCase();
 
-            const matchesType =
-                typeFilter === "All" ||
-                (typeFilter === "Income" &&
-                    transaction.amount > 0) ||
-                (typeFilter === "Expense" &&
-                    transaction.amount < 0);
+            return transactions.filter(
+                (transaction) => {
+                    const matchesSearch =
+                        normalizedSearch ===
+                        "" ||
+                        (
+                            transaction.description ??
+                            ""
+                        )
+                            .toLowerCase()
+                            .includes(
+                                normalizedSearch
+                            );
 
-            const matchesCategory =
-                categoryFilter === "" ||
-                transaction.category_id ===
-                Number(categoryFilter);
+                    const matchesType =
+                        typeFilter === "All" ||
+                        (typeFilter ===
+                            "Income" &&
+                            transaction.amount >
+                            0) ||
+                        (typeFilter ===
+                            "Expense" &&
+                            transaction.amount <
+                            0);
 
-            const matchesPaymentMethod =
-                paymentMethodFilter === "" ||
-                transaction.payment_method_id ===
-                Number(paymentMethodFilter);
+                    const matchesCategory =
+                        categoryFilter ===
+                        "" ||
+                        transaction.category_id ===
+                        Number(
+                            categoryFilter
+                        );
 
-            return (
-                matchesSearch &&
-                matchesType &&
-                matchesCategory &&
-                matchesPaymentMethod
+                    const matchesPaymentMethod =
+                        paymentMethodFilter ===
+                        "" ||
+                        transaction.payment_method_id ===
+                        Number(
+                            paymentMethodFilter
+                        );
+
+                    return (
+                        matchesSearch &&
+                        matchesType &&
+                        matchesCategory &&
+                        matchesPaymentMethod
+                    );
+                }
             );
-        });
-    }, [
-        transactions,
-        searchTerm,
-        typeFilter,
-        categoryFilter,
-        paymentMethodFilter,
-    ]);
+        }, [
+            transactions,
+            searchTerm,
+            typeFilter,
+            categoryFilter,
+            paymentMethodFilter,
+        ]);
 
-    // Clears all transaction search and filter options.
     function clearFilters() {
         setSearchTerm("");
         setTypeFilter("All");
@@ -294,18 +409,141 @@ export default function TransactionsPage() {
         setPaymentMethodFilter("");
     }
 
-    // Validates the form and creates a new transaction.
+    // ------------------------------------------------------------
+    // Receipt Upload
+    // ------------------------------------------------------------
+
+    function validateReceipt(file: File) {
+        if (
+            !ALLOWED_RECEIPT_TYPES.includes(
+                file.type
+            )
+        ) {
+            setMessage(
+                "Receipt must be a JPG, PNG, or WEBP image."
+            );
+
+            return false;
+        }
+
+        if (file.size > MAX_RECEIPT_SIZE) {
+            setMessage(
+                "Receipt image must be 5 MB or smaller."
+            );
+
+            return false;
+        }
+
+        return true;
+    }
+
+    async function uploadReceipt(
+        file: File,
+        userId: string
+    ) {
+        const extension =
+            file.name
+                .split(".")
+                .pop()
+                ?.toLowerCase() ?? "jpg";
+
+        const fileName =
+            `${crypto.randomUUID()}.${extension}`;
+
+        // First folder must match the authenticated user's UUID.
+        const receiptPath =
+            `${userId}/${fileName}`;
+
+        const { error } =
+            await supabase.storage
+                .from("receipts")
+                .upload(
+                    receiptPath,
+                    file,
+                    {
+                        cacheControl: "3600",
+                        upsert: false,
+                    }
+                );
+
+        if (error) {
+            throw new Error(
+                error.message
+            );
+        }
+
+        return receiptPath;
+    }
+
+    // Opens a private receipt through a temporary signed URL.
+    async function handleViewReceipt(
+        receiptPath: string
+    ) {
+        setMessage("");
+        setIsSuccess(false);
+
+        const { data, error } =
+            await supabase.storage
+                .from("receipts")
+                .createSignedUrl(
+                    receiptPath,
+                    60
+                );
+
+        if (error) {
+            setMessage(error.message);
+            return;
+        }
+
+        if (!data?.signedUrl) {
+            setMessage(
+                "Unable to open the receipt."
+            );
+            return;
+        }
+
+        window.open(
+            data.signedUrl,
+            "_blank",
+            "noopener,noreferrer"
+        );
+    }
+
+    // Removes the selected receipt before submission.
+    function removeSelectedReceipt() {
+        setReceiptFile(null);
+
+        setReceiptInputKey(
+            (currentValue) =>
+                currentValue + 1
+        );
+
+        setMessage("");
+    }
+
+    // ------------------------------------------------------------
+    // Add Transaction
+    // ------------------------------------------------------------
+
     async function handleAddTransaction(
         event: FormEvent<HTMLFormElement>
     ) {
         event.preventDefault();
+
+        if (isSubmitting) {
+            return;
+        }
+
         setMessage("");
         setIsSuccess(false);
 
-        const numericAmount = Number(amount);
+        const numericAmount =
+            Number(amount);
 
         if (
-            !Number.isFinite(numericAmount) ||
+            !Number.isFinite(
+                numericAmount
+            ) ||
             numericAmount <= 0
         ) {
             setMessage(
@@ -315,12 +553,16 @@ export default function TransactionsPage() {
         }
 
         if (!categoryId) {
-            setMessage("Please select a category.");
+            setMessage(
+                "Please select a category."
+            );
             return;
         }
 
         if (!paymentMethodId) {
-            setMessage("Please select a payment method.");
+            setMessage(
+                "Please select a payment method."
+            );
             return;
         }
 
@@ -331,10 +573,20 @@ export default function TransactionsPage() {
             return;
         }
 
+        if (
+            receiptFile &&
+            !validateReceipt(
+                receiptFile
+            )
+        ) {
+            return;
+        }
+
         const {
             data: { user },
             error: userError,
-        } = await supabase.auth.getUser();
+        } =
+            await supabase.auth.getUser();
 
         if (userError || !user) {
             setMessage(
@@ -343,79 +595,161 @@ export default function TransactionsPage() {
             return;
         }
 
-        // Store expenses as negative values and income as positive values.
-        const signedAmount =
-            transactionType === "Expense"
-                ? -Math.abs(numericAmount)
-                : Math.abs(numericAmount);
+        setIsSubmitting(true);
 
-        const trimmedDescription =
-            description.trim();
+        try {
+            let receiptPath:
+                | string
+                | null = null;
 
-        const { error } = await supabase
-            .from("transactions")
-            .insert({
-                user_id: user.id,
-                category_id: Number(categoryId),
-                payment_method_id:
-                    Number(paymentMethodId),
-                amount: signedAmount,
-                description:
-                    trimmedDescription || null,
-                transaction_date: transactionDate,
-            });
+            if (receiptFile) {
+                receiptPath =
+                    await uploadReceipt(
+                        receiptFile,
+                        user.id
+                    );
+            }
 
-        if (error) {
-            setMessage(error.message);
-            return;
+            const signedAmount =
+                transactionType ===
+                    "Expense"
+                    ? -Math.abs(
+                        numericAmount
+                    )
+                    : Math.abs(
+                        numericAmount
+                    );
+
+            const trimmedDescription =
+                description.trim();
+
+            const { error } =
+                await supabase
+                    .from(
+                        "transactions"
+                    )
+                    .insert({
+                        user_id:
+                            user.id,
+                        category_id:
+                            Number(
+                                categoryId
+                            ),
+                        payment_method_id:
+                            Number(
+                                paymentMethodId
+                            ),
+                        amount:
+                            signedAmount,
+                        description:
+                            trimmedDescription ||
+                            null,
+                        transaction_date:
+                            transactionDate,
+                        receipt_path:
+                            receiptPath,
+                    });
+
+            if (error) {
+                setMessage(
+                    error.message
+                );
+                return;
+            }
+
+            // Reset the form.
+            setTransactionType(
+                "Expense"
+            );
+
+            setAmount("");
+            setDescription("");
+
+            setTransactionDate(
+                getTodayDate()
+            );
+
+            setReceiptFile(null);
+
+            setReceiptInputKey(
+                (currentValue) =>
+                    currentValue + 1
+            );
+
+            setIsSuccess(true);
+
+            setMessage(
+                receiptPath
+                    ? "Transaction and receipt created successfully."
+                    : "Transaction created successfully."
+            );
+
+            await loadTransactions();
+        } catch (error) {
+            setIsSuccess(false);
+
+            setMessage(
+                error instanceof Error
+                    ? error.message
+                    : "Unable to upload receipt."
+            );
+        } finally {
+            setIsSubmitting(false);
         }
-
-        setTransactionType("Expense");
-        setAmount("");
-        setDescription("");
-        setTransactionDate(getTodayDate());
-        setIsSuccess(true);
-        setMessage(
-            "Transaction created successfully."
-        );
-
-        await loadTransactions();
     }
 
-    // Deletes the selected transaction after confirmation.
+    // ------------------------------------------------------------
+    // Delete Transaction
+    // ------------------------------------------------------------
+
     async function handleDeleteTransaction(
         transactionId: number
     ) {
         setMessage("");
         setIsSuccess(false);
 
-        const { error } = await supabase
-            .from("transactions")
-            .delete()
-            .eq("id", transactionId);
+        const { error } =
+            await supabase
+                .from("transactions")
+                .delete()
+                .eq(
+                    "id",
+                    transactionId
+                );
 
         if (error) {
-            setMessage(error.message);
+            setMessage(
+                error.message
+            );
             return;
         }
 
         if (
-            editingTransactionId === transactionId
+            editingTransactionId ===
+            transactionId
         ) {
             cancelEditing();
         }
 
         setIsSuccess(true);
+
         setMessage(
             "Transaction deleted successfully."
         );
+
         setShowDeleteModal(false);
-        setTransactionToDelete(null);
+
+        setTransactionToDelete(
+            null
+        );
 
         await loadTransactions();
     }
 
-    // Updates an existing transaction.
+    // ------------------------------------------------------------
+    // Update Transaction
+    // ------------------------------------------------------------
+
     async function handleUpdateTransaction(
         transactionId: number
     ) {
@@ -423,10 +757,14 @@ export default function TransactionsPage() {
         setIsSuccess(false);
 
         const numericAmount =
-            Number(editedAmount);
+            Number(
+                editedAmount
+            );
 
         if (
-            !Number.isFinite(numericAmount) ||
+            !Number.isFinite(
+                numericAmount
+            ) ||
             numericAmount <= 0
         ) {
             setMessage(
@@ -436,18 +774,24 @@ export default function TransactionsPage() {
         }
 
         if (!editedCategoryId) {
-            setMessage("Please select a category.");
+            setMessage(
+                "Please select a category."
+            );
             return;
         }
 
-        if (!editedPaymentMethodId) {
+        if (
+            !editedPaymentMethodId
+        ) {
             setMessage(
                 "Please select a payment method."
             );
             return;
         }
 
-        if (!editedTransactionDate) {
+        if (
+            !editedTransactionDate
+        ) {
             setMessage(
                 "Please select a transaction date."
             );
@@ -455,36 +799,60 @@ export default function TransactionsPage() {
         }
 
         const signedAmount =
-            editedTransactionType === "Expense"
-                ? -Math.abs(numericAmount)
-                : Math.abs(numericAmount);
+            editedTransactionType ===
+                "Expense"
+                ? -Math.abs(
+                    numericAmount
+                )
+                : Math.abs(
+                    numericAmount
+                );
 
-        // Remove extra spaces entered by the user.
         const trimmedDescription =
             editedDescription.trim();
 
-        const { error } = await supabase
-            .from("transactions")
-            .update({
-                category_id:
-                    Number(editedCategoryId),
-                payment_method_id:
-                    Number(editedPaymentMethodId),
-                amount: signedAmount,
-                description:
-                    trimmedDescription || null,
-                transaction_date:
-                    editedTransactionDate,
-            })
-            .eq("id", transactionId);
+        const { error } =
+            await supabase
+                .from(
+                    "transactions"
+                )
+                .update({
+                    category_id:
+                        Number(
+                            editedCategoryId
+                        ),
+
+                    payment_method_id:
+                        Number(
+                            editedPaymentMethodId
+                        ),
+
+                    amount:
+                        signedAmount,
+
+                    description:
+                        trimmedDescription ||
+                        null,
+
+                    transaction_date:
+                        editedTransactionDate,
+                })
+                .eq(
+                    "id",
+                    transactionId
+                );
 
         if (error) {
-            setMessage(error.message);
+            setMessage(
+                error.message
+            );
             return;
         }
 
         cancelEditing();
+
         setIsSuccess(true);
+
         setMessage(
             "Transaction updated successfully."
         );
@@ -492,40 +860,60 @@ export default function TransactionsPage() {
         await loadTransactions();
     }
 
-    // Places the selected transaction into edit mode.
     function startEditingTransaction(
         transaction: Transaction
     ) {
         setEditingTransactionId(
             transaction.id
         );
+
         setEditedTransactionType(
             transaction.amount < 0
                 ? "Expense"
                 : "Income"
         );
+
         setEditedAmount(
-            String(Math.abs(transaction.amount))
+            String(
+                Math.abs(
+                    transaction.amount
+                )
+            )
         );
+
         setEditedCategoryId(
-            String(transaction.category_id)
+            String(
+                transaction.category_id
+            )
         );
+
         setEditedPaymentMethodId(
-            String(transaction.payment_method_id)
+            String(
+                transaction.payment_method_id
+            )
         );
+
         setEditedDescription(
-            transaction.description ?? ""
+            transaction.description ??
+            ""
         );
+
         setEditedTransactionDate(
             transaction.transaction_date
         );
+
         setMessage("");
     }
 
-    // Exits edit mode and clears the temporary edit values.
     function cancelEditing() {
-        setEditingTransactionId(null);
-        setEditedTransactionType("Expense");
+        setEditingTransactionId(
+            null
+        );
+
+        setEditedTransactionType(
+            "Expense"
+        );
+
         setEditedAmount("");
         setEditedCategoryId("");
         setEditedPaymentMethodId("");
@@ -534,7 +922,6 @@ export default function TransactionsPage() {
         setMessage("");
     }
 
-    // Enable the Add Transaction button only when required data is available.
     const formIsReady =
         categories.length > 0 &&
         paymentMethods.length > 0;
@@ -550,19 +937,32 @@ export default function TransactionsPage() {
             <Navigation />
 
             <main className={styles.page}>
-                <div className={styles.container}>
-                    <header className={styles.header}>
-                        <h1>Transactions</h1>
+                <div
+                    className={
+                        styles.container
+                    }
+                >
+                    <header
+                        className={
+                            styles.header
+                        }
+                    >
+                        <h1>
+                            Transactions
+                        </h1>
 
                         <p>
-                            Create, search, filter, edit,
-                            and manage your income and
-                            expenses.
+                            Create, search,
+                            filter, edit, and
+                            manage your income
+                            and expenses.
                         </p>
                     </header>
 
                     <section
-                        className={styles.formCard}
+                        className={
+                            styles.formCard
+                        }
                     >
                         <form
                             onSubmit={
@@ -582,7 +982,8 @@ export default function TransactionsPage() {
                                     <label
                                         htmlFor="transactionType"
                                     >
-                                        Transaction Type
+                                        Transaction
+                                        Type
                                     </label>
 
                                     <select
@@ -598,6 +999,7 @@ export default function TransactionsPage() {
                                                     .target
                                                     .value as TransactionType
                                             );
+
                                             setMessage(
                                                 ""
                                             );
@@ -629,7 +1031,9 @@ export default function TransactionsPage() {
                                         type="number"
                                         min="0.01"
                                         step="0.01"
-                                        value={amount}
+                                        value={
+                                            amount
+                                        }
                                         onChange={(
                                             event
                                         ) => {
@@ -638,6 +1042,7 @@ export default function TransactionsPage() {
                                                     .target
                                                     .value
                                             );
+
                                             setMessage(
                                                 ""
                                             );
@@ -670,6 +1075,7 @@ export default function TransactionsPage() {
                                                     .target
                                                     .value
                                             );
+
                                             setMessage(
                                                 ""
                                             );
@@ -710,7 +1116,8 @@ export default function TransactionsPage() {
                                     <label
                                         htmlFor="paymentMethod"
                                     >
-                                        Payment Method
+                                        Payment
+                                        Method
                                     </label>
 
                                     <select
@@ -726,6 +1133,7 @@ export default function TransactionsPage() {
                                                     .target
                                                     .value
                                             );
+
                                             setMessage(
                                                 ""
                                             );
@@ -783,6 +1191,7 @@ export default function TransactionsPage() {
                                                     .target
                                                     .value
                                             );
+
                                             setMessage(
                                                 ""
                                             );
@@ -799,7 +1208,8 @@ export default function TransactionsPage() {
                                     <label
                                         htmlFor="transactionDate"
                                     >
-                                        Transaction Date
+                                        Transaction
+                                        Date
                                     </label>
 
                                     <input
@@ -816,12 +1226,189 @@ export default function TransactionsPage() {
                                                     .target
                                                     .value
                                             );
+
                                             setMessage(
                                                 ""
                                             );
                                         }}
                                         required
                                     />
+                                </div>
+
+                                {/* Receipt Upload */}
+                                <div
+                                    className={`${styles.formGroup} ${styles.fullWidth}`}
+                                >
+                                    <label>
+                                        Receipt
+                                        (Optional)
+                                    </label>
+
+                                    <input
+                                        key={
+                                            receiptInputKey
+                                        }
+                                        id="receipt"
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp"
+                                        className={
+                                            styles.receiptInput
+                                        }
+                                        onChange={(
+                                            event
+                                        ) => {
+                                            const file =
+                                                event
+                                                    .target
+                                                    .files?.[0] ??
+                                                null;
+
+                                            if (
+                                                !file
+                                            ) {
+                                                setReceiptFile(
+                                                    null
+                                                );
+                                                return;
+                                            }
+
+                                            if (
+                                                !validateReceipt(
+                                                    file
+                                                )
+                                            ) {
+                                                event.target.value =
+                                                    "";
+
+                                                setReceiptFile(
+                                                    null
+                                                );
+
+                                                return;
+                                            }
+
+                                            setReceiptFile(
+                                                file
+                                            );
+
+                                            setMessage(
+                                                ""
+                                            );
+                                        }}
+                                    />
+
+                                    {!receiptFile ? (
+                                        <label
+                                            htmlFor="receipt"
+                                            className={
+                                                styles.receiptUploadBox
+                                            }
+                                        >
+                                            <span
+                                                className={
+                                                    styles.receiptUploadIcon
+                                                }
+                                                aria-hidden="true"
+                                            >
+                                                ↑
+                                            </span>
+
+                                            <span
+                                                className={
+                                                    styles.receiptUploadTitle
+                                                }
+                                            >
+                                                Upload a receipt
+                                            </span>
+
+                                            <span
+                                                className={
+                                                    styles.receiptUploadDescription
+                                                }
+                                            >
+                                                Click to choose an
+                                                image from your
+                                                device
+                                            </span>
+
+                                            <span
+                                                className={
+                                                    styles.receiptUploadHelp
+                                                }
+                                            >
+                                                JPG, PNG, or WEBP
+                                                • Maximum 5 MB
+                                            </span>
+                                        </label>
+                                    ) : (
+                                        <div
+                                            className={
+                                                styles.receiptSelected
+                                            }
+                                        >
+                                            <div
+                                                className={
+                                                    styles.receiptSelectedInfo
+                                                }
+                                            >
+                                                <span
+                                                    className={
+                                                        styles.receiptCheck
+                                                    }
+                                                    aria-hidden="true"
+                                                >
+                                                    ✓
+                                                </span>
+
+                                                <div>
+                                                    <p
+                                                        className={
+                                                            styles.receiptSelectedTitle
+                                                        }
+                                                    >
+                                                        Receipt selected
+                                                    </p>
+
+                                                    <p
+                                                        className={
+                                                            styles.receiptFileName
+                                                        }
+                                                    >
+                                                        {
+                                                            receiptFile.name
+                                                        }
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div
+                                                className={
+                                                    styles.receiptSelectedActions
+                                                }
+                                            >
+                                                <label
+                                                    htmlFor="receipt"
+                                                    className={
+                                                        styles.changeReceiptButton
+                                                    }
+                                                >
+                                                    Change Image
+                                                </label>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={
+                                                        removeSelectedReceipt
+                                                    }
+                                                    className={
+                                                        styles.removeReceiptButton
+                                                    }
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -833,13 +1420,16 @@ export default function TransactionsPage() {
                                 <button
                                     type="submit"
                                     disabled={
-                                        !formIsReady
+                                        !formIsReady ||
+                                        isSubmitting
                                     }
                                     className={
                                         styles.primaryButton
                                     }
                                 >
-                                    Add Transaction
+                                    {isSubmitting
+                                        ? "Saving..."
+                                        : "Add Transaction"}
                                 </button>
                             </div>
                         </form>
@@ -850,9 +1440,10 @@ export default function TransactionsPage() {
                                     styles.warningMessage
                                 }
                             >
-                                Create at least one
-                                category and one payment
-                                method before adding a
+                                Create at least
+                                one category and
+                                one payment method
+                                before adding a
                                 transaction.
                             </p>
                         )}
@@ -870,7 +1461,7 @@ export default function TransactionsPage() {
                         )}
                     </section>
 
-                    {/* Search and filter transaction history. */}
+                    {/* Search and Filter */}
                     <section
                         className={
                             styles.filtersCard
@@ -886,9 +1477,10 @@ export default function TransactionsPage() {
                             </h2>
 
                             <p>
-                                Narrow your transaction
-                                history using one or more
-                                filters.
+                                Narrow your
+                                transaction
+                                history using one
+                                or more filters.
                             </p>
                         </div>
 
@@ -918,7 +1510,8 @@ export default function TransactionsPage() {
                                         event
                                     ) =>
                                         setSearchTerm(
-                                            event.target
+                                            event
+                                                .target
                                                 .value
                                         )
                                     }
@@ -946,7 +1539,8 @@ export default function TransactionsPage() {
                                         event
                                     ) =>
                                         setTypeFilter(
-                                            event.target
+                                            event
+                                                .target
                                                 .value as TransactionTypeFilter
                                         )
                                     }
@@ -954,9 +1548,11 @@ export default function TransactionsPage() {
                                     <option value="All">
                                         All Types
                                     </option>
+
                                     <option value="Expense">
                                         Expenses
                                     </option>
+
                                     <option value="Income">
                                         Income
                                     </option>
@@ -983,7 +1579,8 @@ export default function TransactionsPage() {
                                         event
                                     ) =>
                                         setCategoryFilter(
-                                            event.target
+                                            event
+                                                .target
                                                 .value
                                         )
                                     }
@@ -993,7 +1590,9 @@ export default function TransactionsPage() {
                                     </option>
 
                                     {categories.map(
-                                        (category) => (
+                                        (
+                                            category
+                                        ) => (
                                             <option
                                                 key={
                                                     category.id
@@ -1019,7 +1618,8 @@ export default function TransactionsPage() {
                                 <label
                                     htmlFor="paymentMethodFilter"
                                 >
-                                    Payment Method
+                                    Payment
+                                    Method
                                 </label>
 
                                 <select
@@ -1031,7 +1631,8 @@ export default function TransactionsPage() {
                                         event
                                     ) =>
                                         setPaymentMethodFilter(
-                                            event.target
+                                            event
+                                                .target
                                                 .value
                                         )
                                     }
@@ -1101,6 +1702,7 @@ export default function TransactionsPage() {
                         </div>
                     </section>
 
+                    {/* Transactions Table */}
                     <section
                         className={
                             styles.transactionsCard
@@ -1116,8 +1718,9 @@ export default function TransactionsPage() {
                             </h2>
 
                             <p>
-                                Review and manage your
-                                complete transaction
+                                Review and manage
+                                your complete
+                                transaction
                                 history.
                             </p>
                         </div>
@@ -1129,7 +1732,8 @@ export default function TransactionsPage() {
                                     styles.emptyMessage
                                 }
                             >
-                                No transactions yet.
+                                No transactions
+                                yet.
                             </p>
                         ) : filteredTransactions.length ===
                             0 ? (
@@ -1138,8 +1742,9 @@ export default function TransactionsPage() {
                                     styles.emptyMessage
                                 }
                             >
-                                No transactions match
-                                your current filters.
+                                No transactions
+                                match your current
+                                filters.
                             </p>
                         ) : (
                             <div
@@ -1154,12 +1759,8 @@ export default function TransactionsPage() {
                                 >
                                     <thead>
                                         <tr>
-                                            <th>
-                                                Date
-                                            </th>
-                                            <th>
-                                                Type
-                                            </th>
+                                            <th>Date</th>
+                                            <th>Type</th>
                                             <th>
                                                 Category
                                             </th>
@@ -1172,6 +1773,9 @@ export default function TransactionsPage() {
                                             </th>
                                             <th>
                                                 Amount
+                                            </th>
+                                            <th>
+                                                Receipt
                                             </th>
                                             <th>
                                                 Actions
@@ -1364,6 +1968,12 @@ export default function TransactionsPage() {
                                                                 />
                                                             </td>
 
+                                                            <td>
+                                                                {transaction.receipt_path
+                                                                    ? "Attached"
+                                                                    : "None"}
+                                                            </td>
+
                                                             <td
                                                                 className={
                                                                     styles.actionsCell
@@ -1442,6 +2052,25 @@ export default function TransactionsPage() {
                                                                 )}
                                                             </td>
 
+                                                            <td>
+                                                                {transaction.receipt_path ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            void handleViewReceipt(
+                                                                                transaction.receipt_path!
+                                                                            )
+                                                                        }
+                                                                        className={`${styles.actionButton} ${styles.editButton}`}
+                                                                    >
+                                                                        View
+                                                                        Receipt
+                                                                    </button>
+                                                                ) : (
+                                                                    "No receipt"
+                                                                )}
+                                                            </td>
+
                                                             <td
                                                                 className={
                                                                     styles.actionsCell
@@ -1465,6 +2094,7 @@ export default function TransactionsPage() {
                                                                         setTransactionToDelete(
                                                                             transaction
                                                                         );
+
                                                                         setShowDeleteModal(
                                                                             true
                                                                         );
@@ -1485,7 +2115,6 @@ export default function TransactionsPage() {
                         )}
                     </section>
 
-                    {/* Confirmation dialog displayed before deleting a transaction. */}
                     <ConfirmationModal
                         isOpen={
                             showDeleteModal
@@ -1508,6 +2137,7 @@ This action cannot be undone.`}
                             setShowDeleteModal(
                                 false
                             );
+
                             setTransactionToDelete(
                                 null
                             );

@@ -2,8 +2,8 @@
    Transactions Page Styles
 
    Styles the transaction form, search filters, transaction
-   table, action buttons, status messages, and responsive
-   page layout.
+   table, receipt upload, action buttons, status messages,
+   and responsive page layout.
 ------------------------------------------------------------ */
 
 .page {
@@ -113,6 +113,182 @@
 .primaryButton:disabled {
     cursor: not-allowed;
     opacity: 0.6;
+}
+
+/* ------------------------------------------------------------
+   Receipt Upload
+------------------------------------------------------------ */
+
+/* Hide the browser's normal Choose File input. */
+.receiptInput {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Large clickable upload area. */
+.receiptUploadBox {
+    width: 100%;
+    min-height: 180px;
+    padding: 28px 20px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    background-color: #f8fafc;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    text-align: center;
+    cursor: pointer;
+
+    transition:
+        border-color 0.2s ease,
+        background-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.receiptUploadBox:hover {
+    border-color: #2563eb;
+    background-color: #eff6ff;
+}
+
+.receiptUploadBox:active {
+    transform: scale(0.995);
+}
+
+.receiptUploadIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 12px;
+    border-radius: 50%;
+    background-color: #dbeafe;
+    color: #2563eb;
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+.receiptUploadTitle {
+    margin-bottom: 6px;
+    color: #1f2937;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.receiptUploadDescription {
+    margin-bottom: 8px;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.receiptUploadHelp {
+    color: #94a3b8;
+    font-size: 0.8rem;
+}
+
+/* ------------------------------------------------------------
+   Selected Receipt
+------------------------------------------------------------ */
+
+.receiptSelected {
+    width: 100%;
+    padding: 18px;
+    border: 1px solid #bbf7d0;
+    border-radius: 12px;
+    background-color: #f0fdf4;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.receiptSelectedInfo {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 12px;
+}
+
+.receiptCheck {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background-color: #dcfce7;
+    color: #15803d;
+    font-weight: 700;
+}
+
+.receiptSelectedTitle {
+    margin: 0 0 3px;
+    color: #166534;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.receiptFileName {
+    max-width: 400px;
+    margin: 0;
+    overflow: hidden;
+    color: #4b5563;
+    font-size: 0.85rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.receiptSelectedActions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 8px;
+}
+
+.changeReceiptButton,
+.removeReceiptButton {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.changeReceiptButton {
+    border: 1px solid #2563eb;
+    background-color: #ffffff;
+    color: #2563eb;
+}
+
+.changeReceiptButton:hover {
+    background-color: #eff6ff;
+}
+
+.removeReceiptButton {
+    border: 1px solid #fecaca;
+    background-color: #ffffff;
+    color: #b91c1c;
+}
+
+.removeReceiptButton:hover {
+    background-color: #fee2e2;
 }
 
 /* ------------------------------------------------------------
@@ -415,5 +591,35 @@
     .transactionsTable th,
     .transactionsTable td {
         padding: 12px 10px;
+    }
+}
+
+/* ------------------------------------------------------------
+   Receipt Upload - Mobile
+------------------------------------------------------------ */
+
+@media (max-width: 600px) {
+    .receiptUploadBox {
+        min-height: 160px;
+        padding: 24px 16px;
+    }
+
+    .receiptSelected {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .receiptSelectedActions {
+        width: 100%;
+    }
+
+    .changeReceiptButton,
+    .removeReceiptButton {
+        flex: 1;
+        text-align: center;
+    }
+
+    .receiptFileName {
+        max-width: 230px;
     }
 }
