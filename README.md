@@ -1,36 +1,136 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 4D Expense Tracker
 
-## Getting Started
+4D Expense Tracker is a full-stack personal finance web application designed to help users organize and monitor their finances in one place.
 
-First, run the development server:
+Users can securely create an account, record income and expenses, organize transactions by category and payment method, manage bills and monthly budgets, and view financial reports and insights.
+
+## Live Application
+
+The application is deployed on Vercel:
+
+https://4d-expense-tracker.vercel.app
+
+## Features
+
+- User registration and login
+- Secure user authentication
+- Personal expense and income tracking
+- Transaction management
+- Custom expense categories
+- Custom payment methods
+- Monthly budget management
+- Bill tracking and payment status
+- Financial dashboard
+- Income and expense summaries
+- Financial reports and insights
+- Receipt image upload
+- User-specific data protection with Row Level Security (RLS)
+- Responsive web interface
+
+## Tech Stack
+
+### Frontend
+- Next.js
+- React
+- TypeScript
+- CSS
+
+### Backend & Database
+- Supabase
+- PostgreSQL
+- Supabase Authentication
+- Row Level Security (RLS)
+
+### Deployment
+- Vercel
+
+### Development Tools
+- Visual Studio Code
+- Git
+- GitHub
+
+## Database
+
+The application currently uses the following main database tables:
+
+- `profiles` – stores application user profile information
+- `transactions` – stores income and expense transactions
+- `categories` – stores user-created transaction categories
+- `payment_methods` – stores user payment methods
+- `bills` – stores bills, due dates, amounts, and payment status
+- `budgets` – stores monthly user budgets
+
+SQL definitions for the database tables are available in:
+
+```text
+docs/database/
+```
+
+## Security
+
+4D Expense Tracker uses Supabase Authentication for account management.
+
+PostgreSQL Row Level Security (RLS) is used to help ensure that authenticated users can only access and manage data associated with their own accounts.
+
+Sensitive environment variables and credentials are excluded from the Git repository.
+
+## Running the Project Locally
+
+### 1. Clone the repository
+
+```bash
+git clone <repository-url>
+cd expense-tracker
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure environment variables
+
+Create a `.env.local` file in the root directory and configure the required Supabase environment variables.
+
+Do not commit `.env.local` or private credentials to GitHub.
+
+### 4. Start the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Documentation
 
-## Learn More
+Additional project documentation is available in the `docs` directory:
 
-To learn more about Next.js, take a look at the following resources:
+```text
+docs/
+├── database/
+├── project-plan.md
+└── requirements.md
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The production version is deployed using Vercel.
 
-## Deploy on Vercel
+Changes pushed to the production branch can be automatically deployed through the project's Vercel integration.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project Status
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The core version of 4D Expense Tracker is complete and deployed.
+
+The application is currently available for real-world use and testing. Future development may include additional features and improvements based on user feedback.
+
+## Author
+
+**Mohammad Massoud Homayoun** 
+Developed as a personal full-stack software development project.
